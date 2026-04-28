@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GA4 Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0e0f11;
+      --surface: #16181c;
+      --surface2: #1e2126;
+      --border: rgba(255, 255, 255, 0.07);
+      --border2: rgba(255, 255, 255, 0.12);
+      --text: #e8eaf0;
+      --muted: #7a7f8e;
+      --accent: #4f8ef7;
+      --accent2: #7c5cfc;
+      --success: #3ecf8e;
+      --warn: #f5a623;
+      --danger: #f56565;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Syne', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── HEADER ── */
+    #header {
+      padding: 12px 16px 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      background: var(--surface);
+    }
+
+    #avatar {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    #header-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    #header-title {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    #header-sub {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      margin-top: 1px;
+    }
+
+    #status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 6px var(--success);
+      animation: pulse 2.5s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .4
+      }
+    }
+
+    /* ── MESSAGES ── */
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scroll-behavior: smooth;
+    }
+
+    #messages::-webkit-scrollbar {
+      width: 3px;
+    }
+
+    #messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #messages::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 3px;
+    }
+
+    /* ── BULLES ── */
+    .bubble-wrap {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      max-width: 100%;
+    }
+
+    .bubble-wrap.user {
+      flex-direction: row-reverse;
+    }
+
+    .bav {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .bav-bot {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+    }
+
+    .bav-user {
+      background: var(--surface2);
+      color: var(--muted);
+    }
+
+    .bubble {
+      max-width: calc(100% - 36px);
+      padding: 10px 13px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      line-height: 1.65;
+      position: relative;
+    }
+
+    .bubble.bot {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+
+    .bubble.user {
+      background: var(--accent);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .bubble.error {
+      background: rgba(245, 101, 101, 0.1);
+      border: 1px solid rgba(245, 101, 101, 0.25);
+      color: var(--danger);
+    }
+
+    /* Markdown dans les bulles bot */
+    .bubble.bot strong {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .bubble.bot ul {
+      padding-left: 14px;
+      margin: 6px 0;
+    }
+
+    .bubble.bot li {
+      margin: 3px 0;
+      color: var(--muted);
+    }
+
+    .bubble.bot li strong {
+      color: var(--text);
+    }
+
+    .num {
+      font-family: 'DM Mono', monospace;
+      font-weight: 500;
+      color: var(--accent);
+    }
+
+    /* ── SOURCE TAG ── */
+    .source-tag {
+      font-size: 10px;
+      font-family: 'DM Mono', monospace;
+      color: var(--muted);
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .source-tag::before {
+      content: '';
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    /* ── GRAPHIQUE ── */
+    .chart-container {
+      margin-top: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 14px 14px 10px;
+    }
+
+    .chart-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .chart-wrap {
+      position: relative;
+    }
+
+    /* Funnel custom */
+    .funnel-bar-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .funnel-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .funnel-label {
+      width: 140px;
+      flex-shrink: 0;
+      text-align: right;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .funnel-track {
+      flex: 1;
+      height: 28px;
+      background: var(--surface2);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .funnel-fill {
+      height: 100%;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      padding-left: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: 'DM Mono', monospace;
+      color: rgba(255, 255, 255, 0.9);
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      white-space: nowrap;
+    }
+
+    .funnel-drop {
+      font-size: 10px;
+      color: var(--danger);
+      font-family: 'DM Mono', monospace;
+      flex-shrink: 0;
+      width: 44px;
+      text-align: right;
+    }
+
+    /* ── TYPING ── */
+    .typing-dots {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 4px 0;
+    }
+
+    .typing-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: bounce 1.2s ease-in-out infinite;
+    }
+
+    .typing-dots span:nth-child(2) {
+      animation-delay: .15s;
+    }
+
+    .typing-dots span:nth-child(3) {
+      animation-delay: .3s;
+    }
+
+    @keyframes bounce {
+
+      0%,
+      80%,
+      100% {
+        transform: translateY(0)
+      }
+
+      40% {
+        transform: translateY(-5px)
+      }
+    }
+
+    /* ── INPUT ZONE ── */
+    #input-zone {
+      flex-shrink: 0;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      padding: 10px 12px;
+    }
+
+    #input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 6px 8px 6px 12px;
+      transition: border-color .2s;
+    }
+
+    #input-row:focus-within {
+      border-color: var(--accent);
+    }
+
+    #input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      color: var(--text);
+      resize: none;
+      max-height: 80px;
+      overflow-y: auto;
+      line-height: 1.5;
+    }
+
+    #input::placeholder {
+      color: var(--muted);
+    }
+
+    /* ── SWITCH TEXTE/CHART ── */
+    #chart-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      padding: 2px;
+      flex-shrink: 0;
+    }
+
+    .toggle-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 9px;
+      border-radius: 16px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    .toggle-btn.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    .toggle-btn svg {
+      flex-shrink: 0;
+    }
+
+    #send-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: opacity .2s, transform .1s;
+    }
+
+    #send-btn:hover {
+      opacity: .85;
+    }
+
+    #send-btn:active {
+      transform: scale(.93);
+    }
+
+    #send-btn:disabled {
+      opacity: .35;
+      cursor: default;
+      transform: none;
+    }
+
+    /* ── SUGGESTIONS ── */
+    #suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+      padding: 0 2px;
+    }
+
+    .sug-btn {
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    .sug-btn:hover {
+      border-color: var(--border2);
+      color: var(--text);
+    }
+
+    /* ── FOOTER ── */
+    #footer {
+      font-size: 10px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      text-align: center;
+      margin-top: 8px;
+      letter-spacing: 0.03em;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="header">
+    <div id="avatar">G4</div>
+    <div id="header-info">
+      <div id="header-title">GA4 Assistant</div>
+      <div id="header-sub" id="prop-name-tag">—</div>
+    </div>
+    <div id="status-dot"></div>
+  </div>
+
+  <div id="messages"></div>
+
+  <div id="input-zone">
+    <div id="suggestions"></div>
+    <div id="input-row">
+      <textarea id="input" rows="1" placeholder="Posez votre question…"></textarea>
+      <div id="chart-toggle">
+        <button class="toggle-btn active" id="btn-text" onclick="setMode('text')">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <rect x="1" y="2" width="10" height="1.5" rx=".75" fill="currentColor" />
+            <rect x="1" y="5.25" width="8" height="1.5" rx=".75" fill="currentColor" />
+            <rect x="1" y="8.5" width="6" height="1.5" rx=".75" fill="currentColor" />
+          </svg>
+          Texte
+        </button>
+        <button class="toggle-btn" id="btn-chart" onclick="setMode('chart')">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <rect x="1" y="7" width="2.5" height="4" rx=".5" fill="currentColor" />
+            <rect x="4.75" y="4" width="2.5" height="7" rx=".5" fill="currentColor" />
+            <rect x="8.5" y="1.5" width="2.5" height="9.5" rx=".5" fill="currentColor" />
+          </svg>
+          + Graphique
+        </button>
+      </div>
+      <button id="send-btn" onclick="send()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M12.5 7L2 1.5l1.8 5.5L2 12.5z" fill="white" />
+        </svg>
+      </button>
+    </div>
+    <div id="footer">Données issues de Google Analytics 4 · Aucune invention</div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const API_URL = params.get("api") || "";
+    const GA4_PROP_ID = params.get("propertyId") || "";
+    const PROPERTY = params.get("property") || "Analytics";
+    const DATE_RANGE = params.get("dateRange") || "last30days";
+
+    let history = [];
+    let withChart = false;
+    let busy = false;
+
+    // Init UI
+    document.getElementById("header-title").textContent = "GA4 Assistant · " + PROPERTY;
+    document.getElementById("header-sub").textContent = "property " + GA4_PROP_ID;
+
+    const SUGGESTIONS = [
+      "Combien de sessions ce mois ?",
+      "Quel canal amène le plus de trafic ?",
+      "Quelles sont les pages les plus vues ?",
+      "Tunnel d'inscription — où perd-on des utilisateurs ?",
+      "Répartition par appareil",
+    ];
+
+    const sugEl = document.getElementById("suggestions");
+    SUGGESTIONS.forEach(s => {
+      const b = document.createElement("button");
+      b.className = "sug-btn";
+      b.textContent = s;
+      b.onclick = () => { document.getElementById("input").value = s; send(); };
+      sugEl.appendChild(b);
+    });
+
+    // Bot welcome
+    appendMsg("bot",
+      "Bonjour 👋 Je suis votre assistant data, connecté directement à Google Analytics 4 — <strong>" + PROPERTY + "</strong>. "
+      + "Posez-moi n'importe quelle question sur vos données : trafic, conversions, sources, pages…<br>"
+      + "Je réponds uniquement à partir des données réelles, sans estimation.",
+      false, false
+    );
+
+    function setMode(mode) {
+      withChart = mode === "chart";
+      document.getElementById("btn-text").classList.toggle("active", !withChart);
+      document.getElementById("btn-chart").classList.toggle("active", withChart);
+    }
+
+    // Auto-resize textarea
+    const inputEl = document.getElementById("input");
+    inputEl.addEventListener("input", () => {
+      inputEl.style.height = "auto";
+      inputEl.style.height = Math.min(inputEl.scrollHeight, 80) + "px";
+    });
+    inputEl.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+    });
+
+    async function send() {
+      const question = inputEl.value.trim();
+      if (!question || busy) return;
+      if (!API_URL || !GA4_PROP_ID) {
+        appendMsg("bot", "⚠️ Paramètres manquants dans l'URL (api, propertyId).", true);
+        return;
+      }
+
+      busy = true;
+      document.getElementById("send-btn").disabled = true;
+      sugEl.style.display = "none";
+
+      appendMsg("user", question);
+      inputEl.value = "";
+      inputEl.style.height = "auto";
+
+      history.push({ role: "user", content: question });
+
+      const typingId = addTyping();
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({
+            question,
+            ga4_property_id: GA4_PROP_ID,
+            conversation_history: history.slice(-6),
+            property_name: PROPERTY,
+            date_range_hint: DATE_RANGE,
+            with_chart: withChart,
+          }),
+        });
+
+        const rawText = await res.text();
+        removeTyping(typingId);
+
+        let data;
+        try { data = JSON.parse(rawText); }
+        catch (e) { appendMsg("bot", "⚠️ Réponse invalide du serveur.", true); return; }
+
+        if (data.error) {
+          appendMsg("bot", "⚠️ " + data.error, true);
+        } else {
+          appendMsg("bot", data.answer, false, true, data.chart_data);
+          history.push({ role: "assistant", content: data.answer });
+        }
+
+      } catch (e) {
+        removeTyping(typingId);
+        appendMsg("bot", "⚠️ Impossible de joindre le serveur. Vérifiez votre connexion.", true);
+      }
+
+      busy = false;
+      document.getElementById("send-btn").disabled = false;
+    }
+
+    // ── RENDU DES MESSAGES ────────────────────────────────────────────────────────
+    function appendMsg(role, text, isError = false, showSource = false, chart_data = null) {
+      const msgs = document.getElementById("messages");
+
+      const wrap = document.createElement("div");
+      wrap.className = "bubble-wrap " + role;
+
+      const av = document.createElement("div");
+      av.className = "bav bav-" + role;
+      av.textContent = role === "bot" ? "G4" : "→";
+
+      const bub = document.createElement("div");
+      bub.className = "bubble " + role + (isError ? " error" : "");
+
+      const content = document.createElement("div");
+      content.innerHTML = formatText(text);
+      bub.appendChild(content);
+
+      if (showSource && !isError) {
+        const src = document.createElement("div");
+        src.className = "source-tag";
+        src.textContent = "Source: GA4 API";
+        bub.appendChild(src);
+      }
+
+      // Graphique
+      if (chart_data) {
+        const chartEl = renderChart(chart_data);
+        if (chartEl) bub.appendChild(chartEl);
+      }
+
+      wrap.appendChild(av);
+      wrap.appendChild(bub);
+      msgs.appendChild(wrap);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function formatText(text) {
+      if (!text) return "";
+      return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/^- (.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
+        .replace(/\n\n/g, '<br><br>')
+        .replace(/\n/g, '<br>')
+        .replace(/\b(\d[\d\s,.']*\d|\d{3,})\b/g, '<span class="num">$1</span>');
+    }
+
+    // ── RENDU DES GRAPHIQUES ──────────────────────────────────────────────────────
+    function renderChart(cd) {
+      if (!cd || !cd.labels || !cd.datasets) return null;
+
+      const container = document.createElement("div");
+      container.className = "chart-container";
+
+      if (cd.title) {
+        const title = document.createElement("div");
+        title.className = "chart-title";
+        title.textContent = cd.title;
+        container.appendChild(title);
+      }
+
+      // Funnel → rendu custom (pas Chart.js)
+      if (cd.type === "funnel") {
+        return renderFunnel(cd, container);
+      }
+
+      const wrap = document.createElement("div");
+      wrap.className = "chart-wrap";
+      const canvas = document.createElement("canvas");
+      const maxItems = cd.type === "pie" ? 6 : 12;
+      const labels = cd.labels.slice(0, maxItems);
+      const datasets = cd.datasets.map(ds => ({
+        ...ds,
+        data: (ds.data || []).slice(0, maxItems),
+      }));
+
+      // Couleurs
+      const PALETTE = [
+        "#4f8ef7", "#7c5cfc", "#3ecf8e", "#f5a623", "#f56565",
+        "#38bdf8", "#a78bfa", "#34d399", "#fbbf24", "#f87171",
+        "#60a5fa", "#818cf8"
+      ];
+
+      const isHBar = cd.type === "horizontalBar";
+      const chartType = isHBar ? "bar" : cd.type;
+
+      const datasetConfig = datasets.map((ds, di) => ({
+        label: ds.label || "",
+        data: ds.data,
+        backgroundColor: cd.type === "line"
+          ? "rgba(79,142,247,0.12)"
+          : cd.type === "pie"
+            ? PALETTE.slice(0, ds.data.length)
+            : PALETTE[di % PALETTE.length],
+        borderColor: cd.type === "pie"
+          ? PALETTE.slice(0, ds.data.length).map(c => c + "cc")
+          : cd.type === "line"
+            ? PALETTE[di % PALETTE.length]
+            : PALETTE[di % PALETTE.length],
+        borderWidth: cd.type === "pie" ? 2 : cd.type === "line" ? 2 : 0,
+        borderRadius: cd.type === "line" ? 0 : 5,
+        fill: cd.type === "line",
+        tension: 0.35,
+        pointRadius: cd.type === "line" ? 3 : 0,
+        pointBackgroundColor: PALETTE[di % PALETTE.length],
+      }));
+
+      const chartH = cd.type === "pie" ? 200 : isHBar ? Math.max(120, labels.length * 30) : 190;
+      canvas.style.maxHeight = chartH + "px";
+
+      const config = {
+        type: chartType,
+        data: { labels, datasets: datasetConfig },
+        options: {
+          indexAxis: isHBar ? "y" : "x",
+          responsive: true,
+          maintainAspectRatio: true,
+          animation: { duration: 600, easing: "easeOutQuart" },
+          plugins: {
+            legend: {
+              display: cd.type === "pie" || datasets.length > 1,
+              labels: {
+                color: "#7a7f8e",
+                font: { family: "'DM Mono', monospace", size: 11 },
+                boxWidth: 10,
+                padding: 12,
+              },
+            },
+            tooltip: {
+              backgroundColor: "#1e2126",
+              borderColor: "rgba(255,255,255,0.12)",
+              borderWidth: 1,
+              titleColor: "#e8eaf0",
+              bodyColor: "#7a7f8e",
+              titleFont: { family: "'Syne', sans-serif", size: 12, weight: "600" },
+              bodyFont: { family: "'DM Mono', monospace", size: 11 },
+              padding: 10,
+              callbacks: {
+                label: ctx => {
+                  const val = ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.parsed;
+                  return " " + (typeof val === "number" ? val.toLocaleString("fr-FR") : val);
+                },
+              },
+            },
+          },
+          scales: cd.type === "pie" ? {} : {
+            x: {
+              grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },
+              ticks: {
+                color: "#7a7f8e",
+                font: { family: "'DM Mono', monospace", size: 10 },
+                maxRotation: isHBar ? 0 : 30,
+                callback: v => typeof v === "number" && v >= 1000 ? (v / 1000).toFixed(1) + "k" : v,
+              },
+            },
+            y: {
+              grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },
+              ticks: {
+                color: "#7a7f8e",
+                font: { family: "'DM Mono', monospace", size: 10 },
+                callback: v => typeof v === "number" && v >= 1000 ? (v / 1000).toFixed(1) + "k" : v,
+              },
+            },
+          },
+        },
+      };
+
+      wrap.appendChild(canvas);
+      container.appendChild(wrap);
+      requestAnimationFrame(() => new Chart(canvas, config));
+      return container;
+    }
+
+    function renderFunnel(cd, container) {
+      const wrap = document.createElement("div");
+      wrap.className = "funnel-bar-wrap";
+
+      const values = cd.datasets[0]?.data || [];
+      const maxVal = Math.max(...values, 1);
+
+      const FUNNEL_COLORS = [
+        "#4f8ef7", "#7c5cfc", "#a78bfa", "#3ecf8e", "#38bdf8", "#60a5fa"
+      ];
+
+      cd.labels.forEach((label, i) => {
+        const val = values[i] || 0;
+        const pct = Math.round((val / maxVal) * 100);
+        const drop = i > 0 && values[i - 1] > 0
+          ? "-" + Math.round((1 - val / values[i - 1]) * 100) + "%"
+          : "";
+
+        const step = document.createElement("div");
+        step.className = "funnel-step";
+
+        const lbl = document.createElement("div");
+        lbl.className = "funnel-label";
+        lbl.textContent = label;
+        lbl.title = label;
+
+        const track = document.createElement("div");
+        track.className = "funnel-track";
+
+        const fill = document.createElement("div");
+        fill.className = "funnel-fill";
+        fill.style.width = "0%";
+        fill.style.background = FUNNEL_COLORS[i % FUNNEL_COLORS.length];
+        fill.textContent = val.toLocaleString("fr-FR");
+
+        const dropEl = document.createElement("div");
+        dropEl.className = "funnel-drop";
+        dropEl.textContent = drop;
+
+        track.appendChild(fill);
+        step.appendChild(lbl);
+        step.appendChild(track);
+        step.appendChild(dropEl);
+        wrap.appendChild(step);
+
+        // Animation entrée
+        setTimeout(() => { fill.style.width = pct + "%"; }, 100 + i * 80);
+      });
+
+      container.appendChild(wrap);
+      return container;
+    }
+
+    function addTyping() {
+      const id = "typing-" + Date.now();
+      const msgs = document.getElementById("messages");
+      const wrap = document.createElement("div");
+      wrap.className = "bubble-wrap bot";
+      wrap.id = id;
+
+      const av = document.createElement("div");
+      av.className = "bav bav-bot";
+      av.textContent = "G4";
+
+      const bub = document.createElement("div");
+      bub.className = "bubble bot";
+
+      const dots = document.createElement("div");
+      dots.className = "typing-dots";
+      dots.innerHTML = "<span></span><span></span><span></span>";
+
+      bub.appendChild(dots);
+      wrap.appendChild(av);
+      wrap.appendChild(bub);
+      msgs.appendChild(wrap);
+      msgs.scrollTop = msgs.scrollHeight;
+      return id;
+    }
+
+    function removeTyping(id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+  </script>
+</body>
+
+</html>
