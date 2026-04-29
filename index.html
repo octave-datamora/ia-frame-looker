@@ -109,6 +109,145 @@
       }
     }
 
+    /* ── DATE PICKER ── */
+    #date-picker-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    #date-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    #date-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    #date-btn svg {
+      flex-shrink: 0;
+    }
+
+    #date-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      width: 220px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 6px;
+      z-index: 999;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+    }
+
+    #date-dropdown.open {
+      display: block;
+    }
+
+    .dp-preset {
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11.5px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .15s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .dp-preset:hover {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .dp-preset.active {
+      color: var(--accent);
+    }
+
+    .dp-preset.active::after {
+      content: "✓";
+      font-size: 11px;
+    }
+
+    .dp-sep {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 6px 0;
+    }
+
+    .dp-custom-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      padding: 4px 10px 6px;
+      display: block;
+    }
+
+    .dp-date-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 4px;
+    }
+
+    .dp-date-row input[type="date"] {
+      flex: 1;
+      min-width: 0;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      padding: 4px 6px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 10.5px;
+      outline: none;
+    }
+
+    .dp-date-row input[type="date"]:focus {
+      border-color: var(--accent);
+    }
+
+    .dp-date-row input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(.5);
+      cursor: pointer;
+    }
+
+    .dp-apply {
+      width: 100%;
+      margin-top: 8px;
+      padding: 6px;
+      border-radius: 6px;
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+
+    .dp-apply:hover {
+      opacity: .85;
+    }
+
     /* ── MESSAGES ── */
     #messages {
       flex: 1;
@@ -194,7 +333,6 @@
       color: var(--danger);
     }
 
-    /* Markdown dans les bulles bot */
     .bubble.bot strong {
       font-weight: 600;
       color: var(--text);
@@ -263,7 +401,6 @@
       position: relative;
     }
 
-    /* Funnel custom */
     .funnel-bar-wrap {
       display: flex;
       flex-direction: column;
@@ -510,9 +647,43 @@
     <div id="avatar">G4</div>
     <div id="header-info">
       <div id="header-title">GA4 Assistant</div>
-      <div id="header-sub" id="prop-name-tag">—</div>
+      <div id="header-sub">—</div>
     </div>
     <div id="status-dot"></div>
+
+    <!-- DATE PICKER -->
+    <div id="date-picker-wrap">
+      <button id="date-btn" onclick="toggleDatePicker()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+        <span id="date-btn-label">Ce mois-ci</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          id="dp-chevron">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      <div id="date-dropdown">
+        <div class="dp-preset active" data-value="thisMonth" onclick="selectPreset(this)">Ce mois-ci</div>
+        <div class="dp-preset" data-value="last7days" onclick="selectPreset(this)">7 derniers jours</div>
+        <div class="dp-preset" data-value="last30days" onclick="selectPreset(this)">30 derniers jours</div>
+        <div class="dp-preset" data-value="last90days" onclick="selectPreset(this)">90 derniers jours</div>
+        <div class="dp-preset" data-value="lastMonth" onclick="selectPreset(this)">Mois dernier</div>
+        <div class="dp-preset" data-value="thisYear" onclick="selectPreset(this)">Cette année</div>
+        <hr class="dp-sep">
+        <span class="dp-custom-label">Période personnalisée</span>
+        <div class="dp-date-row">
+          <input type="date" id="dp-start">
+          <span style="color:var(--muted);font-size:11px">→</span>
+          <input type="date" id="dp-end">
+        </div>
+        <button class="dp-apply" onclick="applyCustomDate()">Appliquer</button>
+      </div>
+    </div>
   </div>
 
   <div id="messages"></div>
@@ -553,8 +724,10 @@
     const API_URL = params.get("api") || "";
     const GA4_PROP_ID = params.get("propertyId") || "";
     const PROPERTY = params.get("property") || "Analytics";
-    const DATE_RANGE = params.get("dateRange") || "last30days";
 
+    let DATE_RANGE = params.get("dateRange") || "thisMonth";
+    let CUSTOM_START = null;
+    let CUSTOM_END = null;
     let history = [];
     let withChart = false;
     let busy = false;
@@ -562,7 +735,62 @@
     // Init UI
     document.getElementById("header-title").textContent = "GA4 Assistant · " + PROPERTY;
     document.getElementById("header-sub").textContent = "property " + GA4_PROP_ID;
+    syncDateLabel();
 
+    // ── DATE PICKER ────────────────────────────────────────────────────────────
+    function toggleDatePicker() {
+      const dd = document.getElementById("date-dropdown");
+      dd.classList.toggle("open");
+      document.getElementById("dp-chevron").style.transform =
+        dd.classList.contains("open") ? "rotate(180deg)" : "";
+    }
+
+    function selectPreset(el) {
+      document.querySelectorAll(".dp-preset").forEach(p => p.classList.remove("active"));
+      el.classList.add("active");
+      DATE_RANGE = el.dataset.value;
+      CUSTOM_START = null;
+      CUSTOM_END = null;
+      syncDateLabel();
+      closeDatePicker();
+    }
+
+    function applyCustomDate() {
+      const s = document.getElementById("dp-start").value;
+      const e = document.getElementById("dp-end").value;
+      if (!s || !e) return;
+      CUSTOM_START = s;
+      CUSTOM_END = e;
+      DATE_RANGE = "custom";
+      document.querySelectorAll(".dp-preset").forEach(p => p.classList.remove("active"));
+      syncDateLabel();
+      closeDatePicker();
+    }
+
+    function syncDateLabel() {
+      const labels = {
+        thisMonth: "Ce mois-ci", last7days: "7 derniers jours",
+        last30days: "30 derniers jours", last90days: "90 derniers jours",
+        lastMonth: "Mois dernier", thisYear: "Cette année",
+      };
+      const el = document.getElementById("date-btn-label");
+      if (DATE_RANGE === "custom" && CUSTOM_START && CUSTOM_END) {
+        el.textContent = CUSTOM_START + " → " + CUSTOM_END;
+      } else {
+        el.textContent = labels[DATE_RANGE] || DATE_RANGE;
+      }
+    }
+
+    function closeDatePicker() {
+      document.getElementById("date-dropdown").classList.remove("open");
+      document.getElementById("dp-chevron").style.transform = "";
+    }
+
+    document.addEventListener("click", e => {
+      if (!document.getElementById("date-picker-wrap").contains(e.target)) closeDatePicker();
+    });
+
+    // ── SUGGESTIONS ────────────────────────────────────────────────────────────
     const SUGGESTIONS = [
       "Combien de sessions ce mois ?",
       "Quel canal amène le plus de trafic ?",
@@ -594,7 +822,6 @@
       document.getElementById("btn-chart").classList.toggle("active", withChart);
     }
 
-    // Auto-resize textarea
     const inputEl = document.getElementById("input");
     inputEl.addEventListener("input", () => {
       inputEl.style.height = "auto";
@@ -604,6 +831,7 @@
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
     });
 
+    // ── ENVOI ──────────────────────────────────────────────────────────────────
     async function send() {
       const question = inputEl.value.trim();
       if (!question || busy) return;
@@ -619,23 +847,31 @@
       appendMsg("user", question);
       inputEl.value = "";
       inputEl.style.height = "auto";
-
       history.push({ role: "user", content: question });
 
       const typingId = addTyping();
 
       try {
+        const bodyPayload = {
+          question,
+          ga4_property_id: GA4_PROP_ID,
+          conversation_history: history.slice(-6),
+          property_name: PROPERTY,
+          with_chart: withChart,
+        };
+
+        if (DATE_RANGE === "custom" && CUSTOM_START && CUSTOM_END) {
+          bodyPayload.date_range_hint = "custom";
+          bodyPayload.custom_start = CUSTOM_START;
+          bodyPayload.custom_end = CUSTOM_END;
+        } else {
+          bodyPayload.date_range_hint = DATE_RANGE;
+        }
+
         const res = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({
-            question,
-            ga4_property_id: GA4_PROP_ID,
-            conversation_history: history.slice(-6),
-            property_name: PROPERTY,
-            date_range_hint: DATE_RANGE,
-            with_chart: withChart,
-          }),
+          body: JSON.stringify(bodyPayload),
         });
 
         const rawText = await res.text();
@@ -661,37 +897,29 @@
       document.getElementById("send-btn").disabled = false;
     }
 
-    // ── RENDU DES MESSAGES ────────────────────────────────────────────────────────
+    // ── MESSAGES ───────────────────────────────────────────────────────────────
     function appendMsg(role, text, isError = false, showSource = false, chart_data = null) {
       const msgs = document.getElementById("messages");
-
       const wrap = document.createElement("div");
       wrap.className = "bubble-wrap " + role;
-
       const av = document.createElement("div");
       av.className = "bav bav-" + role;
       av.textContent = role === "bot" ? "G4" : "→";
-
       const bub = document.createElement("div");
       bub.className = "bubble " + role + (isError ? " error" : "");
-
       const content = document.createElement("div");
       content.innerHTML = formatText(text);
       bub.appendChild(content);
-
       if (showSource && !isError) {
         const src = document.createElement("div");
         src.className = "source-tag";
         src.textContent = "Source: GA4 API";
         bub.appendChild(src);
       }
-
-      // Graphique
       if (chart_data) {
         const chartEl = renderChart(chart_data);
         if (chartEl) bub.appendChild(chartEl);
       }
-
       wrap.appendChild(av);
       wrap.appendChild(bub);
       msgs.appendChild(wrap);
@@ -709,58 +937,32 @@
         .replace(/\b(\d[\d\s,.']*\d|\d{3,})\b/g, '<span class="num">$1</span>');
     }
 
-    // ── RENDU DES GRAPHIQUES ──────────────────────────────────────────────────────
+    // ── GRAPHIQUES ─────────────────────────────────────────────────────────────
     function renderChart(cd) {
       if (!cd || !cd.labels || !cd.datasets) return null;
-
       const container = document.createElement("div");
       container.className = "chart-container";
-
       if (cd.title) {
         const title = document.createElement("div");
         title.className = "chart-title";
         title.textContent = cd.title;
         container.appendChild(title);
       }
-
-      // Funnel → rendu custom (pas Chart.js)
-      if (cd.type === "funnel") {
-        return renderFunnel(cd, container);
-      }
-
+      if (cd.type === "funnel") return renderFunnel(cd, container);
       const wrap = document.createElement("div");
       wrap.className = "chart-wrap";
       const canvas = document.createElement("canvas");
       const maxItems = cd.type === "pie" ? 6 : 12;
       const labels = cd.labels.slice(0, maxItems);
-      const datasets = cd.datasets.map(ds => ({
-        ...ds,
-        data: (ds.data || []).slice(0, maxItems),
-      }));
-
-      // Couleurs
-      const PALETTE = [
-        "#4f8ef7", "#7c5cfc", "#3ecf8e", "#f5a623", "#f56565",
-        "#38bdf8", "#a78bfa", "#34d399", "#fbbf24", "#f87171",
-        "#60a5fa", "#818cf8"
-      ];
-
+      const datasets = cd.datasets.map(ds => ({ ...ds, data: (ds.data || []).slice(0, maxItems) }));
+      const PALETTE = ["#4f8ef7", "#7c5cfc", "#3ecf8e", "#f5a623", "#f56565", "#38bdf8", "#a78bfa", "#34d399", "#fbbf24", "#f87171", "#60a5fa", "#818cf8"];
       const isHBar = cd.type === "horizontalBar";
       const chartType = isHBar ? "bar" : cd.type;
-
       const datasetConfig = datasets.map((ds, di) => ({
         label: ds.label || "",
         data: ds.data,
-        backgroundColor: cd.type === "line"
-          ? "rgba(79,142,247,0.12)"
-          : cd.type === "pie"
-            ? PALETTE.slice(0, ds.data.length)
-            : PALETTE[di % PALETTE.length],
-        borderColor: cd.type === "pie"
-          ? PALETTE.slice(0, ds.data.length).map(c => c + "cc")
-          : cd.type === "line"
-            ? PALETTE[di % PALETTE.length]
-            : PALETTE[di % PALETTE.length],
+        backgroundColor: cd.type === "line" ? "rgba(79,142,247,0.12)" : cd.type === "pie" ? PALETTE.slice(0, ds.data.length) : PALETTE[di % PALETTE.length],
+        borderColor: cd.type === "pie" ? PALETTE.slice(0, ds.data.length).map(c => c + "cc") : cd.type === "line" ? PALETTE[di % PALETTE.length] : PALETTE[di % PALETTE.length],
         borderWidth: cd.type === "pie" ? 2 : cd.type === "line" ? 2 : 0,
         borderRadius: cd.type === "line" ? 0 : 5,
         fill: cd.type === "line",
@@ -768,10 +970,8 @@
         pointRadius: cd.type === "line" ? 3 : 0,
         pointBackgroundColor: PALETTE[di % PALETTE.length],
       }));
-
       const chartH = cd.type === "pie" ? 200 : isHBar ? Math.max(120, labels.length * 30) : 190;
       canvas.style.maxHeight = chartH + "px";
-
       const config = {
         type: chartType,
         data: { labels, datasets: datasetConfig },
@@ -781,54 +981,15 @@
           maintainAspectRatio: true,
           animation: { duration: 600, easing: "easeOutQuart" },
           plugins: {
-            legend: {
-              display: cd.type === "pie" || datasets.length > 1,
-              labels: {
-                color: "#7a7f8e",
-                font: { family: "'DM Mono', monospace", size: 11 },
-                boxWidth: 10,
-                padding: 12,
-              },
-            },
-            tooltip: {
-              backgroundColor: "#1e2126",
-              borderColor: "rgba(255,255,255,0.12)",
-              borderWidth: 1,
-              titleColor: "#e8eaf0",
-              bodyColor: "#7a7f8e",
-              titleFont: { family: "'Syne', sans-serif", size: 12, weight: "600" },
-              bodyFont: { family: "'DM Mono', monospace", size: 11 },
-              padding: 10,
-              callbacks: {
-                label: ctx => {
-                  const val = ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.parsed;
-                  return " " + (typeof val === "number" ? val.toLocaleString("fr-FR") : val);
-                },
-              },
-            },
+            legend: { display: cd.type === "pie" || datasets.length > 1, labels: { color: "#7a7f8e", font: { family: "'DM Mono', monospace", size: 11 }, boxWidth: 10, padding: 12 } },
+            tooltip: { backgroundColor: "#1e2126", borderColor: "rgba(255,255,255,0.12)", borderWidth: 1, titleColor: "#e8eaf0", bodyColor: "#7a7f8e", titleFont: { family: "'Syne', sans-serif", size: 12, weight: "600" }, bodyFont: { family: "'DM Mono', monospace", size: 11 }, padding: 10, callbacks: { label: ctx => { const val = ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.parsed; return " " + (typeof val === "number" ? val.toLocaleString("fr-FR") : val); } } },
           },
           scales: cd.type === "pie" ? {} : {
-            x: {
-              grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },
-              ticks: {
-                color: "#7a7f8e",
-                font: { family: "'DM Mono', monospace", size: 10 },
-                maxRotation: isHBar ? 0 : 30,
-                callback: v => typeof v === "number" && v >= 1000 ? (v / 1000).toFixed(1) + "k" : v,
-              },
-            },
-            y: {
-              grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },
-              ticks: {
-                color: "#7a7f8e",
-                font: { family: "'DM Mono', monospace", size: 10 },
-                callback: v => typeof v === "number" && v >= 1000 ? (v / 1000).toFixed(1) + "k" : v,
-              },
-            },
+            x: { grid: { color: "rgba(255,255,255,0.04)", drawBorder: false }, ticks: { color: "#7a7f8e", font: { family: "'DM Mono', monospace", size: 10 }, maxRotation: isHBar ? 0 : 30, callback: v => typeof v === "number" && v >= 1000 ? (v / 1000).toFixed(1) + "k" : v } },
+            y: { grid: { color: "rgba(255,255,255,0.04)", drawBorder: false }, ticks: { color: "#7a7f8e", font: { family: "'DM Mono', monospace", size: 10 }, callback: v => typeof v === "number" && v >= 1000 ? (v / 1000).toFixed(1) + "k" : v } },
           },
         },
       };
-
       wrap.appendChild(canvas);
       container.appendChild(wrap);
       requestAnimationFrame(() => new Chart(canvas, config));
@@ -838,52 +999,21 @@
     function renderFunnel(cd, container) {
       const wrap = document.createElement("div");
       wrap.className = "funnel-bar-wrap";
-
       const values = cd.datasets[0]?.data || [];
       const maxVal = Math.max(...values, 1);
-
-      const FUNNEL_COLORS = [
-        "#4f8ef7", "#7c5cfc", "#a78bfa", "#3ecf8e", "#38bdf8", "#60a5fa"
-      ];
-
+      const FUNNEL_COLORS = ["#4f8ef7", "#7c5cfc", "#a78bfa", "#3ecf8e", "#38bdf8", "#60a5fa"];
       cd.labels.forEach((label, i) => {
         const val = values[i] || 0;
         const pct = Math.round((val / maxVal) * 100);
-        const drop = i > 0 && values[i - 1] > 0
-          ? "-" + Math.round((1 - val / values[i - 1]) * 100) + "%"
-          : "";
-
-        const step = document.createElement("div");
-        step.className = "funnel-step";
-
-        const lbl = document.createElement("div");
-        lbl.className = "funnel-label";
-        lbl.textContent = label;
-        lbl.title = label;
-
-        const track = document.createElement("div");
-        track.className = "funnel-track";
-
-        const fill = document.createElement("div");
-        fill.className = "funnel-fill";
-        fill.style.width = "0%";
-        fill.style.background = FUNNEL_COLORS[i % FUNNEL_COLORS.length];
-        fill.textContent = val.toLocaleString("fr-FR");
-
-        const dropEl = document.createElement("div");
-        dropEl.className = "funnel-drop";
-        dropEl.textContent = drop;
-
-        track.appendChild(fill);
-        step.appendChild(lbl);
-        step.appendChild(track);
-        step.appendChild(dropEl);
-        wrap.appendChild(step);
-
-        // Animation entrée
+        const drop = i > 0 && values[i - 1] > 0 ? "-" + Math.round((1 - val / values[i - 1]) * 100) + "%" : "";
+        const step = document.createElement("div"); step.className = "funnel-step";
+        const lbl = document.createElement("div"); lbl.className = "funnel-label"; lbl.textContent = label; lbl.title = label;
+        const track = document.createElement("div"); track.className = "funnel-track";
+        const fill = document.createElement("div"); fill.className = "funnel-fill"; fill.style.width = "0%"; fill.style.background = FUNNEL_COLORS[i % FUNNEL_COLORS.length]; fill.textContent = val.toLocaleString("fr-FR");
+        const dropEl = document.createElement("div"); dropEl.className = "funnel-drop"; dropEl.textContent = drop;
+        track.appendChild(fill); step.appendChild(lbl); step.appendChild(track); step.appendChild(dropEl); wrap.appendChild(step);
         setTimeout(() => { fill.style.width = pct + "%"; }, 100 + i * 80);
       });
-
       container.appendChild(wrap);
       return container;
     }
@@ -891,25 +1021,11 @@
     function addTyping() {
       const id = "typing-" + Date.now();
       const msgs = document.getElementById("messages");
-      const wrap = document.createElement("div");
-      wrap.className = "bubble-wrap bot";
-      wrap.id = id;
-
-      const av = document.createElement("div");
-      av.className = "bav bav-bot";
-      av.textContent = "G4";
-
-      const bub = document.createElement("div");
-      bub.className = "bubble bot";
-
-      const dots = document.createElement("div");
-      dots.className = "typing-dots";
-      dots.innerHTML = "<span></span><span></span><span></span>";
-
-      bub.appendChild(dots);
-      wrap.appendChild(av);
-      wrap.appendChild(bub);
-      msgs.appendChild(wrap);
+      const wrap = document.createElement("div"); wrap.className = "bubble-wrap bot"; wrap.id = id;
+      const av = document.createElement("div"); av.className = "bav bav-bot"; av.textContent = "G4";
+      const bub = document.createElement("div"); bub.className = "bubble bot";
+      const dots = document.createElement("div"); dots.className = "typing-dots"; dots.innerHTML = "<span></span><span></span><span></span>";
+      bub.appendChild(dots); wrap.appendChild(av); wrap.appendChild(bub); msgs.appendChild(wrap);
       msgs.scrollTop = msgs.scrollHeight;
       return id;
     }
