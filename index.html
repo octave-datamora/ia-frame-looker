@@ -831,6 +831,41 @@
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
     });
 
+    // ── CONVERSION DATES ───────────────────────────────────────────────────────
+    // GA4 n'accepte que YYYY-MM-DD, NdaysAgo, yesterday, today.
+    // On convertit ici les presets "calendrier" en vraies dates avant envoi.
+    function resolveDateRange(range) {
+      const today = new Date();
+      const toISO = d => d.toISOString().split("T")[0];
+
+      if (range === "custom" && CUSTOM_START && CUSTOM_END) {
+        return { date_range_hint: "custom", custom_start: CUSTOM_START, custom_end: CUSTOM_END };
+      }
+      if (range === "thisMonth") {
+        return {
+          date_range_hint: "custom",
+          custom_start: toISO(new Date(today.getFullYear(), today.getMonth(), 1)),
+          custom_end: toISO(today),
+        };
+      }
+      if (range === "lastMonth") {
+        return {
+          date_range_hint: "custom",
+          custom_start: toISO(new Date(today.getFullYear(), today.getMonth() - 1, 1)),
+          custom_end: toISO(new Date(today.getFullYear(), today.getMonth(), 0)),
+        };
+      }
+      if (range === "thisYear") {
+        return {
+          date_range_hint: "custom",
+          custom_start: today.getFullYear() + "-01-01",
+          custom_end: toISO(today),
+        };
+      }
+      // last7days, last30days, last90days → le backend les convertit en NdaysAgo, ça marche nativement
+      return { date_range_hint: range };
+    }
+
     // ── ENVOI ──────────────────────────────────────────────────────────────────
     async function send() {
       const question = inputEl.value.trim();
@@ -852,21 +887,16 @@
       const typingId = addTyping();
 
       try {
+        const dateParams = resolveDateRange(DATE_RANGE);
+
         const bodyPayload = {
           question,
           ga4_property_id: GA4_PROP_ID,
           conversation_history: history.slice(-6),
           property_name: PROPERTY,
           with_chart: withChart,
+          ...dateParams,
         };
-
-        if (DATE_RANGE === "custom" && CUSTOM_START && CUSTOM_END) {
-          bodyPayload.date_range_hint = "custom";
-          bodyPayload.custom_start = CUSTOM_START;
-          bodyPayload.custom_end = CUSTOM_END;
-        } else {
-          bodyPayload.date_range_hint = DATE_RANGE;
-        }
 
         const res = await fetch(API_URL, {
           method: "POST",
