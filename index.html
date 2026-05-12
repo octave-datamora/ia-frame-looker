@@ -614,7 +614,8 @@ const TWEAK_DEFAULTS = {
         → envoyé par le bloc HTML Looker pour injecter les valeurs dynamiquement
    ------------------------------------------------------------------ */
 const params        = new URLSearchParams(location.search);
-const API_URL       = params.get('api') || '';          // URL du GAS /exec
+// L'URL GAS est stockée côté serveur (variable d'env Vercel GAS_API_URL) — plus besoin de la passer en URL
+// Le proxy /api/proxy la lit directement depuis process.env.GAS_API_URL
 const INITIAL_RANGE = params.get('dateRange') || 'this_month';
 // Valeurs par défaut depuis l'URL (écrasables via postMessage)
 const DEFAULT_PROPERTY_ID   = params.get('propertyId') || '';
@@ -1074,8 +1075,8 @@ function App() {
     return () => window.removeEventListener('message', onMsg);
   }, []);
 
-  /* Mode démo si API ou propertyId manquant */
-  const isDemo = !API_URL || !propertyId;
+  /* Mode démo si propertyId manquant (l'URL GAS est maintenant côté serveur) */
+  const isDemo = !propertyId;
 
   /* State */
   const [currentRange, setCurrentRange] = useState(INITIAL_RANGE);
@@ -1127,8 +1128,8 @@ function App() {
       if (!isDemo) {
         /* ── Mode réel : passe par le proxy Vercel pour éviter les blocages CORS/sandbox Looker ── */
         const backendRange = PERIOD_TO_BACKEND[useRange] || 'last30days';
-        // /api/proxy?to=<GAS_URL> — même origine → pas de CORS, fonctionne dans tous les iframes
-        const proxyUrl = `/api/proxy?to=${encodeURIComponent(API_URL)}`;
+        // /api/proxy — même origine → pas de CORS, GAS URL lue depuis env Vercel côté serveur
+        const proxyUrl = `/api/proxy`;
         const res = await fetch(proxyUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1191,7 +1192,7 @@ function App() {
             <div className="hdr-title">GA4 Assistant</div>
             <div className="hdr-sub">
               {isDemo
-                ? '⚠ Mode démo — propertyId manquant'
+                ? '⚠ Mode démo — ?propertyId= manquant dans l\'URL'
                 : (propertyName || 'Analytics, en clair')}
             </div>
           </div>

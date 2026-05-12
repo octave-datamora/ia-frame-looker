@@ -16,8 +16,9 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Méthode non autorisée.' });
 
-  const gasUrl = req.query.to;
-  if (!gasUrl) return res.status(400).json({ error: 'Paramètre ?to= manquant.' });
+  // GAS URL : env var (optionnel) > param ?to= (rétrocompat) > URL hardcodée
+  const GAS_HARDCODED = 'https://script.google.com/macros/s/AKfycbxBy16eBpB5hlS7E95-Cjx-JSXI4E90A6FjT_Rfn4vdeBLxFlvf1DXSLtHtsm3IXrlBxg/exec';
+  const gasUrl = process.env.GAS_API_URL || req.query.to || GAS_HARDCODED;
 
   const body = typeof req.body === 'string'
     ? req.body
