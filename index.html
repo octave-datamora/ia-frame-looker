@@ -606,27 +606,19 @@ const TWEAK_DEFAULTS = {
   animSpeed: 1,
 };
 
-/* ---------- URL params — récupération sécurisée depuis l'iframe parent ----------
-   L'iframe doit passer :
-     ?api=https://...        URL de votre backend FastAPI
-     &propertyId=123456789   GA4 property ID (OBLIGATOIRE pour les vraies données)
-     &property=Mon+Site      Nom affiché dans le header (optionnel)
-     &dateRange=this_month   Période par défaut (optionnel)
-   Ex : <iframe src="index.html?api=https://api.example.com/chat&propertyId=123456789">
-   IMPORTANT : sans propertyId, la page tourne en mode démo (données fictives).
+/* ---------- URL params — valeurs par défaut (peuvent être écrasées par postMessage) ----------
+   Priorité : postMessage Looker  >  params URL  >  mode démo
+   Sources possibles :
+     1. URL  : ?api=...&propertyId=...&property=...   (accès direct ou iframe simple)
+     2. postMessage { type:'ga4_init', propertyId:'...', propertyName:'...' }
+        → envoyé par le bloc HTML Looker pour injecter les valeurs dynamiquement
    ------------------------------------------------------------------ */
 const params        = new URLSearchParams(location.search);
-const API_URL       = params.get('api');                        // URL backend
-const PROPERTY_ID   = params.get('propertyId') || '';          // GA4 property ID
-const PROPERTY_NAME = params.get('property')   || '';          // Nom du site
-const INITIAL_RANGE = params.get('dateRange')  || 'this_month';
-
-// Si pas de propertyId ET une API est configurée : on avertit en console
-if (API_URL && !PROPERTY_ID) {
-  console.warn('[GA4 Assistant] ⚠️ Aucun propertyId dans les paramètres URL. Ajoutez ?propertyId=VOTRE_ID à l\'URL de l\'iframe.');
-}
-
-const IS_DEMO = !API_URL || !PROPERTY_ID;
+const API_URL       = params.get('api') || '';          // URL du GAS /exec
+const INITIAL_RANGE = params.get('dateRange') || 'this_month';
+// Valeurs par défaut depuis l'URL (écrasables via postMessage)
+const DEFAULT_PROPERTY_ID   = params.get('propertyId') || '';
+const DEFAULT_PROPERTY_NAME = params.get('property')   || '';
 
 /* ---------- Périodes (IDs frontend) ---------- */
 const PERIODS = [
@@ -917,11 +909,11 @@ function ChartCard({ chart, dark }) {
 
     const palette = [ember, ink, '#7a9b76', '#c89f5a', '#5b6e8f', '#a44d6a', '#6b8e8a'];
 
-    const isPie  = chart.type === 'pie';
-    const isLine = chart.type === 'line';
-    const isBarH = chart.type === 'bar_horizontal';
+    const isPie    = chart.type === 'pie';
+    const isLine   = chart.type === 'line';
+    const isBarH   = chart.type === 'bar_horizontal' || chart.type === 'horizontalBar'; // GAS retourne "horizontalBar"
     const isFunnel = chart.type === 'funnel';
-    const isBar  = chart.type === 'bar' || isFunnel || isBarH;
+    const isBar    = chart.type === 'bar' || isFunnel || isBarH;
 
     let cfgType = isPie ? 'doughnut' : isLine ? 'line' : 'bar';
 
@@ -1065,6 +1057,26 @@ function App() {
     document.documentElement.dataset.theme = tweaks.darkMode ? 'dark' : 'light';
   }, [tweaks.darkMode]);
 
+  /* Propriété GA4 — dynamique via postMessage Looker ou params URL */
+  const [propertyId,   setPropertyId]   = useState(DEFAULT_PROPERTY_ID);
+  const [propertyName, setPropertyName] = useState(DEFAULT_PROPERTY_NAME);
+
+  /* Écoute postMessage du parent (bloc HTML Looker) */
+  useEffect(() => {
+    function onMsg(e) {
+      const d = e.data || {};
+      if (d.type === 'ga4_init') {
+        if (d.propertyId)   { setPropertyId(String(d.propertyId)); }
+        if (d.propertyName) { setPropertyName(d.propertyName); }
+      }
+    }
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  /* Mode démo si API ou propertyId manquant */
+  const isDemo = !API_URL || !propertyId;
+
   /* State */
   const [currentRange, setCurrentRange] = useState(INITIAL_RANGE);
   const [withChart, setWithChart]       = useState(true);
@@ -1112,24 +1124,26 @@ function App() {
 
     let data;
     try {
-      if (!IS_DEMO) {
+      if (!isDemo) {
         /* ── Mode réel : API + propertyId présents ── */
         const backendRange = PERIOD_TO_BACKEND[useRange] || 'last30days';
+        // Content-Type: text/plain évite le preflight CORS avec Google Apps Script
         const res = await fetch(API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
             question: q,
-            ga4_property_id: PROPERTY_ID,   // transmis depuis l'URL de l'iframe
+            ga4_property_id: propertyId,    // dynamique (postMessage ou URL)
             conversation_history,
-            property_name: PROPERTY_NAME,
+            property_name: propertyName,
             date_range_hint: backendRange,
             with_chart: withChart,
           }),
         });
         data = await res.json();
+        if (data.error) throw new Error(data.error);
       } else {
-        /* ── Mode démo (pas d'api= ou pas de propertyId=) ── */
+        /* ── Mode démo (api= ou propertyId= manquant) ── */
         await new Promise(r => setTimeout(r, 1400 + Math.random() * 700));
         data = mockResponse(q, useRange);
         if (!withChart) data.chart_data = null;
@@ -1175,9 +1189,9 @@ function App() {
           <div>
             <div className="hdr-title">GA4 Assistant</div>
             <div className="hdr-sub">
-              {IS_DEMO
-                ? '⚠ Mode démo — ajoutez ?propertyId= à l\'URL'
-                : (PROPERTY_NAME || 'Analytics, en clair')}
+              {isDemo
+                ? '⚠ Mode démo — propertyId manquant'
+                : (propertyName || 'Analytics, en clair')}
             </div>
           </div>
         </div>
