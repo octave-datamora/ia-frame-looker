@@ -1,1070 +1,1275 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GA4 Assistant</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link
-    href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600&display=swap"
-    rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-  <style>
-    :root {
-      --bg: #0e0f11;
-      --surface: #16181c;
-      --surface2: #1e2126;
-      --border: rgba(255, 255, 255, 0.07);
-      --border2: rgba(255, 255, 255, 0.12);
-      --text: #e8eaf0;
-      --muted: #7a7f8e;
-      --accent: #4f8ef7;
-      --accent2: #7c5cfc;
-      --success: #3ecf8e;
-      --warn: #f5a623;
-      --danger: #f56565;
-      --radius: 12px;
-      --radius-sm: 8px;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Syne', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    /* ── HEADER ── */
-    #header {
-      padding: 12px 16px 10px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-shrink: 0;
-      background: var(--surface);
-    }
-
-    #avatar {
-      width: 28px;
-      height: 28px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 600;
-      color: white;
-      flex-shrink: 0;
-    }
-
-    #header-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    #header-title {
-      font-size: 13px;
-      font-weight: 600;
-      line-height: 1.2;
-    }
-
-    #header-sub {
-      font-size: 11px;
-      color: var(--muted);
-      font-family: 'DM Mono', monospace;
-      margin-top: 1px;
-    }
-
-    #status-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--success);
-      box-shadow: 0 0 6px var(--success);
-      animation: pulse 2.5s ease-in-out infinite;
-      flex-shrink: 0;
-    }
-
-    @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1
-      }
-
-      50% {
-        opacity: .4
-      }
-    }
-
-    /* ── DATE PICKER ── */
-    #date-picker-wrap {
-      position: relative;
-      flex-shrink: 0;
-    }
-
-    #date-btn {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 5px 10px;
-      background: var(--surface2);
-      border: 1px solid var(--border2);
-      border-radius: 8px;
-      color: var(--muted);
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      cursor: pointer;
-      transition: all .2s;
-      white-space: nowrap;
-    }
-
-    #date-btn:hover {
-      border-color: var(--accent);
-      color: var(--text);
-    }
-
-    #date-btn svg {
-      flex-shrink: 0;
-    }
-
-    #date-dropdown {
-      display: none;
-      position: absolute;
-      top: calc(100% + 6px);
-      right: 0;
-      width: 220px;
-      background: var(--surface);
-      border: 1px solid var(--border2);
-      border-radius: var(--radius);
-      padding: 6px;
-      z-index: 999;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
-    }
-
-    #date-dropdown.open {
-      display: block;
-    }
-
-    .dp-preset {
-      padding: 7px 10px;
-      border-radius: 6px;
-      font-family: 'DM Mono', monospace;
-      font-size: 11.5px;
-      color: var(--muted);
-      cursor: pointer;
-      transition: all .15s;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .dp-preset:hover {
-      background: var(--surface2);
-      color: var(--text);
-    }
-
-    .dp-preset.active {
-      color: var(--accent);
-    }
-
-    .dp-preset.active::after {
-      content: "✓";
-      font-size: 11px;
-    }
-
-    .dp-sep {
-      border: none;
-      border-top: 1px solid var(--border);
-      margin: 6px 0;
-    }
-
-    .dp-custom-label {
-      font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      padding: 4px 10px 6px;
-      display: block;
-    }
-
-    .dp-date-row {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 0 4px;
-    }
-
-    .dp-date-row input[type="date"] {
-      flex: 1;
-      min-width: 0;
-      background: var(--surface2);
-      border: 1px solid var(--border2);
-      border-radius: 6px;
-      padding: 4px 6px;
-      color: var(--text);
-      font-family: 'DM Mono', monospace;
-      font-size: 10.5px;
-      outline: none;
-    }
-
-    .dp-date-row input[type="date"]:focus {
-      border-color: var(--accent);
-    }
-
-    .dp-date-row input[type="date"]::-webkit-calendar-picker-indicator {
-      filter: invert(.5);
-      cursor: pointer;
-    }
-
-    .dp-apply {
-      width: 100%;
-      margin-top: 8px;
-      padding: 6px;
-      border-radius: 6px;
-      border: none;
-      background: var(--accent);
-      color: white;
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      cursor: pointer;
-      transition: opacity .2s;
-    }
-
-    .dp-apply:hover {
-      opacity: .85;
-    }
-
-    /* ── MESSAGES ── */
-    #messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      scroll-behavior: smooth;
-    }
-
-    #messages::-webkit-scrollbar {
-      width: 3px;
-    }
-
-    #messages::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    #messages::-webkit-scrollbar-thumb {
-      background: var(--border2);
-      border-radius: 3px;
-    }
-
-    /* ── BULLES ── */
-    .bubble-wrap {
-      display: flex;
-      gap: 8px;
-      align-items: flex-end;
-      max-width: 100%;
-    }
-
-    .bubble-wrap.user {
-      flex-direction: row-reverse;
-    }
-
-    .bav {
-      width: 24px;
-      height: 24px;
-      border-radius: 6px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      font-weight: 600;
-    }
-
-    .bav-bot {
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      color: white;
-    }
-
-    .bav-user {
-      background: var(--surface2);
-      color: var(--muted);
-    }
-
-    .bubble {
-      max-width: calc(100% - 36px);
-      padding: 10px 13px;
-      border-radius: var(--radius);
-      font-size: 13px;
-      line-height: 1.65;
-      position: relative;
-    }
-
-    .bubble.bot {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-bottom-left-radius: 4px;
-    }
-
-    .bubble.user {
-      background: var(--accent);
-      color: white;
-      border-bottom-right-radius: 4px;
-    }
-
-    .bubble.error {
-      background: rgba(245, 101, 101, 0.1);
-      border: 1px solid rgba(245, 101, 101, 0.25);
-      color: var(--danger);
-    }
-
-    .bubble.bot strong {
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    .bubble.bot ul {
-      padding-left: 14px;
-      margin: 6px 0;
-    }
-
-    .bubble.bot li {
-      margin: 3px 0;
-      color: var(--muted);
-    }
-
-    .bubble.bot li strong {
-      color: var(--text);
-    }
-
-    .num {
-      font-family: 'DM Mono', monospace;
-      font-weight: 500;
-      color: var(--accent);
-    }
-
-    /* ── SOURCE TAG ── */
-    .source-tag {
-      font-size: 10px;
-      font-family: 'DM Mono', monospace;
-      color: var(--muted);
-      margin-top: 6px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .source-tag::before {
-      content: '';
-      display: inline-block;
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: var(--success);
-    }
-
-    /* ── GRAPHIQUE ── */
-    .chart-container {
-      margin-top: 10px;
-      background: var(--surface);
-      border: 1px solid var(--border2);
-      border-radius: var(--radius-sm);
-      padding: 14px 14px 10px;
-    }
-
-    .chart-title {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-      margin-bottom: 10px;
-      font-family: 'DM Mono', monospace;
-    }
-
-    .chart-wrap {
-      position: relative;
-    }
-
-    .funnel-bar-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .funnel-step {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-    }
-
-    .funnel-label {
-      width: 140px;
-      flex-shrink: 0;
-      text-align: right;
-      color: var(--muted);
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .funnel-track {
-      flex: 1;
-      height: 28px;
-      background: var(--surface2);
-      border-radius: 4px;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .funnel-fill {
-      height: 100%;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      padding-left: 8px;
-      font-size: 11px;
-      font-weight: 600;
-      font-family: 'DM Mono', monospace;
-      color: rgba(255, 255, 255, 0.9);
-      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-      white-space: nowrap;
-    }
-
-    .funnel-drop {
-      font-size: 10px;
-      color: var(--danger);
-      font-family: 'DM Mono', monospace;
-      flex-shrink: 0;
-      width: 44px;
-      text-align: right;
-    }
-
-    /* ── TYPING ── */
-    .typing-dots {
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      padding: 4px 0;
-    }
-
-    .typing-dots span {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: var(--muted);
-      animation: bounce 1.2s ease-in-out infinite;
-    }
-
-    .typing-dots span:nth-child(2) {
-      animation-delay: .15s;
-    }
-
-    .typing-dots span:nth-child(3) {
-      animation-delay: .3s;
-    }
-
-    @keyframes bounce {
-
-      0%,
-      80%,
-      100% {
-        transform: translateY(0)
-      }
-
-      40% {
-        transform: translateY(-5px)
-      }
-    }
-
-    /* ── INPUT ZONE ── */
-    #input-zone {
-      flex-shrink: 0;
-      border-top: 1px solid var(--border);
-      background: var(--surface);
-      padding: 10px 12px;
-    }
-
-    #input-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--surface2);
-      border: 1px solid var(--border2);
-      border-radius: var(--radius);
-      padding: 6px 8px 6px 12px;
-      transition: border-color .2s;
-    }
-
-    #input-row:focus-within {
-      border-color: var(--accent);
-    }
-
-    #input {
-      flex: 1;
-      background: none;
-      border: none;
-      outline: none;
-      font-family: 'Syne', sans-serif;
-      font-size: 13px;
-      color: var(--text);
-      resize: none;
-      max-height: 80px;
-      overflow-y: auto;
-      line-height: 1.5;
-    }
-
-    #input::placeholder {
-      color: var(--muted);
-    }
-
-    /* ── SWITCH TEXTE/CHART ── */
-    #chart-toggle {
-      display: flex;
-      align-items: center;
-      gap: 0;
-      background: var(--surface);
-      border: 1px solid var(--border2);
-      border-radius: 20px;
-      padding: 2px;
-      flex-shrink: 0;
-    }
-
-    .toggle-btn {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 9px;
-      border-radius: 16px;
-      border: none;
-      background: none;
-      cursor: pointer;
-      font-family: 'Syne', sans-serif;
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--muted);
-      transition: all .2s;
-      white-space: nowrap;
-    }
-
-    .toggle-btn.active {
-      background: var(--accent);
-      color: white;
-    }
-
-    .toggle-btn svg {
-      flex-shrink: 0;
-    }
-
-    #send-btn {
-      width: 30px;
-      height: 30px;
-      border-radius: 8px;
-      background: var(--accent);
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      transition: opacity .2s, transform .1s;
-    }
-
-    #send-btn:hover {
-      opacity: .85;
-    }
-
-    #send-btn:active {
-      transform: scale(.93);
-    }
-
-    #send-btn:disabled {
-      opacity: .35;
-      cursor: default;
-      transform: none;
-    }
-
-    /* ── SUGGESTIONS ── */
-    #suggestions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 10px;
-      padding: 0 2px;
-    }
-
-    .sug-btn {
-      font-family: 'Syne', sans-serif;
-      font-size: 11px;
-      color: var(--muted);
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 4px 10px;
-      cursor: pointer;
-      transition: all .2s;
-      white-space: nowrap;
-    }
-
-    .sug-btn:hover {
-      border-color: var(--border2);
-      color: var(--text);
-    }
-
-    /* ── FOOTER ── */
-    #footer {
-      font-size: 10px;
-      color: var(--muted);
-      font-family: 'DM Mono', monospace;
-      text-align: center;
-      margin-top: 8px;
-      letter-spacing: 0.03em;
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GA4 Assistant</title>
+
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha512-CQBWl4fJHWbryGE+Pc7UAxWMUMNMWzWxF4SQo9CgkJIN1kx6djDQZjh3Y8SZ1d+6I+1zze6Z7kHXO7q3UyZAWw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<style>
+/* ============================================================
+   GA4 Assistant — editorial cream + ember
+   ============================================================ */
+
+:root {
+  --bg:          #fbf6ee;
+  --bg-soft:     #f4ecdd;
+  --surface:     #ffffff;
+  --ink:         #1a1714;
+  --ink-2:       #4a443d;
+  --ink-3:       #8a8278;
+  --hair:        #e8dfce;
+  --hair-strong: #d4c8b0;
+
+  --ember:       #e85d1f;
+  --ember-soft:  #fde7d4;
+  --ember-deep:  #b3450f;
+
+  --cloud-fill:  #1a1714;
+  --cloud-hi:    #2a221b;
+
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  --r-xl: 28px;
+
+  --shadow-sm:  0 1px 2px rgba(26,23,20,.06);
+  --shadow-md:  0 6px 20px -8px rgba(26,23,20,.18), 0 2px 6px -2px rgba(26,23,20,.08);
+  --shadow-lg:  0 24px 48px -16px rgba(26,23,20,.22), 0 8px 16px -8px rgba(26,23,20,.1);
+
+  --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --sans:  "Instrument Sans", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --speed: 1;
+  --ease:     cubic-bezier(.5,.05,.25,1);
+  --ease-out: cubic-bezier(.16,1,.3,1);
+}
+
+[data-theme="dark"] {
+  --bg:          #15110d;
+  --bg-soft:     #1d1814;
+  --surface:     #1f1a15;
+  --ink:         #f6efe2;
+  --ink-2:       #c8bda8;
+  --ink-3:       #8a8073;
+  --hair:        #2a2520;
+  --hair-strong: #3a3329;
+
+  --ember:       #ff8a4c;
+  --ember-soft:  #3a2418;
+  --ember-deep:  #ffa572;
+
+  --cloud-fill:  #f6efe2;
+  --cloud-hi:    #ffe6c8;
+
+  --shadow-sm:  0 1px 2px rgba(0,0,0,.4);
+  --shadow-md:  0 6px 20px -8px rgba(0,0,0,.55), 0 2px 6px -2px rgba(0,0,0,.35);
+  --shadow-lg:  0 24px 48px -16px rgba(0,0,0,.7), 0 8px 16px -8px rgba(0,0,0,.4);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── SHELL ─────────────────────────────────────────────────── */
+.ga4 {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+/* ── STAGE ─────────────────────────────────────────────────── */
+.stage {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* Zone cloud — toujours visible, ne scrolle jamais */
+.cloud-zone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 14px 24px 10px;
+  text-align: center;
+  z-index: 1;
+}
+.cloud-zone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(60% 80% at 50% 50%,
+    color-mix(in oklab, var(--ember) 6%, transparent), transparent 75%);
+  pointer-events: none;
+}
+.cloud-zone > * { position: relative; }
+
+/* Zone chat scrollable */
+.chat-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  min-height: 0;
+}
+.chat-scroll::-webkit-scrollbar { width: 6px; }
+.chat-scroll::-webkit-scrollbar-thumb { background: var(--hair-strong); border-radius: 3px; }
+.chat-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* ── HEADER ────────────────────────────────────────────────── */
+.hdr {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 28px;
+  border-bottom: 1px solid var(--hair);
+  background: var(--bg);
+  z-index: 5;
+}
+.hdr-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.hdr-mark {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--ember);
+  align-self: center;
+  animation: pulse-mark 3.4s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(232,93,31,0.5);
+}
+@keyframes pulse-mark {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232,93,31,.35); }
+  50%      { box-shadow: 0 0 0 5px rgba(232,93,31,0); }
+}
+.hdr-title {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-style: italic;
+  letter-spacing: -.01em;
+  color: var(--ink);
+  line-height: 1;
+  white-space: nowrap;
+}
+.hdr-sub {
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-top: 4px;
+}
+
+/* ── PERIOD SELECTOR ───────────────────────────────────────── */
+.period { position: relative; }
+.period-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--bg-soft);
+  border: 1px solid var(--hair);
+  border-radius: 999px;
+  padding: 6px 10px 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background .18s var(--ease), border-color .18s var(--ease);
+}
+.period-btn:hover { background: var(--ember-soft); border-color: var(--hair-strong); }
+.period-btn svg { width: 12px; height: 12px; opacity: .55; }
+
+.period-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 168px;
+  background: var(--surface);
+  border: 1px solid var(--hair);
+  border-radius: var(--r-md);
+  padding: 6px;
+  box-shadow: var(--shadow-md);
+  z-index: 50;
+  animation: menu-in .18s var(--ease-out);
+}
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(-4px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+.period-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.period-opt:hover { background: var(--bg-soft); }
+.period-opt.is-active { color: var(--ember); font-weight: 600; }
+.period-opt .check { opacity: 0; }
+.period-opt.is-active .check { opacity: 1; }
+
+/* ── SCROLLABLE MAIN ───────────────────────────────────────── */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  position: relative;
+}
+.main::-webkit-scrollbar { width: 6px; }
+.main::-webkit-scrollbar-thumb { background: var(--hair-strong); border-radius: 3px; }
+.main::-webkit-scrollbar-track { background: transparent; }
+
+/* ── HERO CONTENT ──────────────────────────────────────────── */
+.left-headline {
+  font-family: var(--serif);
+  font-size: clamp(22px, 2.6vw, 36px);
+  line-height: 1.08;
+  letter-spacing: -.018em;
+  color: var(--ink);
+  margin: 0 0 6px;
+  max-width: 720px;
+  text-wrap: balance;
+}
+.left-headline em { font-style: italic; color: var(--ember); }
+.left-sub {
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.55;
+  max-width: 320px;
+  margin: 0 0 14px;
+}
+.left-status {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(14px, 1.3vw, 18px);
+  color: var(--ink-2);
+  min-height: 24px;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+.left-status em { color: var(--ember); font-style: italic; }
+
+/* ── CLOUD ─────────────────────────────────────────────────── */
+.cloud-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: width .4s cubic-bezier(.16,1,.3,1), height .4s cubic-bezier(.16,1,.3,1);
+}
+/* Grande version — état vide */
+.cloud-wrap.cloud-hero {
+  height: min(200px, 26vh);
+  aspect-ratio: 1;
+  width: auto;
+  max-width: 50%;
+  margin: 6px auto;
+}
+/* Petite version — conversation active */
+.cloud-wrap.cloud-mini {
+  height: 76px;
+  width: 76px;
+  margin: 4px auto;
+}
+.cloud-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+/* ── WHISPER ───────────────────────────────────────────────── */
+.whisper {
+  min-height: 44px;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+  flex-shrink: 0;
+}
+.whisper-chip {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(13px, 1.2vw, 17px);
+  line-height: 1.3;
+  color: var(--ink-2);
+  background: transparent;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 999px;
+  max-width: 420px;
+  text-wrap: balance;
+  transition: color .2s var(--ease), background .2s var(--ease);
+  position: absolute;
+}
+.whisper-chip::before { content: "\201C"; color: var(--ember); margin-right: 4px; font-size: 22px; vertical-align: -2px; }
+.whisper-chip::after  { content: "\201D"; color: var(--ember); margin-left: 2px;  font-size: 22px; vertical-align: -2px; }
+.whisper-chip:hover { color: var(--ink); background: var(--ember-soft); }
+
+.whisper-enter { animation: whisper-in .55s var(--ease-out) both; }
+.whisper-leave { animation: whisper-out .35s var(--ease) both; }
+@keyframes whisper-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes whisper-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-6px); }
+}
+
+.hero-dots {
+  display: flex;
+  gap: 5px;
+  margin-top: 10px;
+}
+.hero-dots span {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--hair-strong);
+  transition: background .25s var(--ease), transform .25s var(--ease);
+}
+.hero-dots span.on { background: var(--ember); transform: scale(1.25); }
+
+/* ── CHAT ──────────────────────────────────────────────────── */
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 8px 24px 24px;
+  text-align: left;
+}
+
+.msg { display: flex; flex-direction: column; gap: 6px; }
+.msg.user { align-items: flex-end; }
+.msg.bot  { align-items: flex-start; }
+
+.bubble {
+  max-width: 90%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink);
+  word-wrap: break-word;
+}
+.msg.user .bubble {
+  background: var(--ink);
+  color: var(--bg);
+  border-bottom-right-radius: 6px;
+  font-weight: 450;
+}
+.msg.bot .bubble {
+  background: var(--surface);
+  border: 1px solid var(--hair);
+  border-bottom-left-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  animation: bubble-in .5s var(--ease-out) both;
+}
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateY(8px) scale(.985); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+.bubble strong { font-weight: 600; color: var(--ink); }
+.bubble ul { margin: 6px 0 4px; padding-left: 18px; }
+.bubble ul li { margin: 2px 0; }
+.bubble p { margin: 0; }
+.bubble p + p { margin-top: 8px; }
+
+/* msg.user .bubble resets */
+.msg.user .bubble strong { color: var(--bg); }
+
+.msg-meta {
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: .03em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+}
+.msg-meta .sep { width: 2px; height: 2px; border-radius: 50%; background: var(--ink-3); opacity: .6; }
+.msg-meta .src { display: inline-flex; align-items: center; gap: 4px; color: var(--ink-3); }
+.msg-meta .src::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ember); opacity: .7;
+}
+
+/* ── CHART CARD ────────────────────────────────────────────── */
+.chart-card {
+  margin-top: 10px;
+  background: var(--surface);
+  border: 1px solid var(--hair);
+  border-radius: var(--r-md);
+  padding: 16px 16px 14px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: var(--shadow-sm);
+  animation: bubble-in .65s var(--ease-out) both;
+  animation-delay: .12s;
+  opacity: 0;
+}
+.chart-card .ct-title {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 17px;
+  color: var(--ink);
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+.chart-card .ct-canvas {
+  position: relative;
+  width: 100%;
+  height: 220px;
+}
+
+/* ── COMPOSER ──────────────────────────────────────────────── */
+.composer {
+  position: relative;
+  padding: 12px 24px 16px;
+  background: var(--bg);
+  border-top: 1px solid var(--hair);
+  z-index: 4;
+}
+.composer-inner { max-width: 720px; margin: 0 auto; }
+
+.composer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--hair);
+  border-radius: 22px;
+  padding: 10px 10px 10px 18px;
+  transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.composer-row:focus-within {
+  border-color: var(--ember);
+  box-shadow: 0 0 0 3px rgba(232,93,31,.12);
+}
+
+.composer textarea {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  resize: none;
+  background: transparent;
+  font-family: var(--sans);
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--ink);
+  padding: 6px 0;
+  max-height: 120px;
+  min-height: 24px;
+}
+.composer textarea::placeholder {
+  color: var(--ink-3);
+  font-style: italic;
+  font-family: var(--serif);
+  font-size: 16px;
+}
+
+.send-btn {
+  width: 36px; height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--bg);
+  border: 0;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .2s var(--ease), transform .12s var(--ease);
+}
+.send-btn:hover { background: var(--ember); }
+.send-btn:active { transform: scale(.94); }
+.send-btn:disabled { background: var(--hair-strong); cursor: not-allowed; transform: none; }
+.send-btn svg { width: 15px; height: 15px; }
+
+.composer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 4px 0;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.chart-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 8px 4px 4px;
+  border-radius: 999px;
+  transition: background .2s var(--ease);
+}
+.chart-toggle:hover { background: var(--bg-soft); }
+.chart-toggle .switch {
+  width: 26px; height: 16px;
+  background: var(--hair-strong);
+  border-radius: 999px;
+  position: relative;
+  transition: background .22s var(--ease);
+}
+.chart-toggle .switch::after {
+  content: "";
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 12px; height: 12px;
+  background: var(--surface);
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0,0,0,.2);
+  transition: transform .22s var(--ease);
+}
+.chart-toggle.is-on .switch { background: var(--ember); }
+.chart-toggle.is-on .switch::after { transform: translateX(10px); }
+.chart-toggle .lbl {
+  font-family: var(--sans);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+
+.composer-hint {
+  font-size: 12px;
+  color: var(--ink-3);
+  font-style: italic;
+  font-family: var(--serif);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.composer-bottom > * { min-width: 0; }
+</style>
 </head>
-
 <body>
 
-  <div id="header">
-    <div id="avatar">G4</div>
-    <div id="header-info">
-      <div id="header-title">GA4 Assistant</div>
-      <div id="header-sub">—</div>
-    </div>
-    <div id="status-dot"></div>
+<div id="root"></div>
 
-    <!-- DATE PICKER -->
-    <div id="date-picker-wrap">
-      <button id="date-btn" onclick="toggleDatePicker()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="4" width="18" height="18" rx="2" />
-          <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-        <span id="date-btn-label">Ce mois-ci</span>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          id="dp-chevron">
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
+<!-- ============================================================
+     APP
+     ============================================================ -->
+<script type="text/babel" data-presets="env,react">
+const {
+  useState, useEffect, useRef, useMemo,
+  useCallback, useLayoutEffect
+} = React;
 
-      <div id="date-dropdown">
-        <div class="dp-preset active" data-value="thisMonth" onclick="selectPreset(this)">Ce mois-ci</div>
-        <div class="dp-preset" data-value="last7days" onclick="selectPreset(this)">7 derniers jours</div>
-        <div class="dp-preset" data-value="last30days" onclick="selectPreset(this)">30 derniers jours</div>
-        <div class="dp-preset" data-value="last90days" onclick="selectPreset(this)">90 derniers jours</div>
-        <div class="dp-preset" data-value="lastMonth" onclick="selectPreset(this)">Mois dernier</div>
-        <div class="dp-preset" data-value="thisYear" onclick="selectPreset(this)">Cette année</div>
-        <hr class="dp-sep">
-        <span class="dp-custom-label">Période personnalisée</span>
-        <div class="dp-date-row">
-          <input type="date" id="dp-start">
-          <span style="color:var(--muted);font-size:11px">→</span>
-          <input type="date" id="dp-end">
-        </div>
-        <button class="dp-apply" onclick="applyCustomDate()">Appliquer</button>
-      </div>
-    </div>
-  </div>
+/* ---------- Defaults ---------- */
+const TWEAK_DEFAULTS = {
+  cloudMorph: "blob",
+  darkMode: true,
+  animSpeed: 1,
+};
 
-  <div id="messages"></div>
+/* ---------- URL params — récupération sécurisée depuis l'iframe parent ----------
+   L'iframe doit passer :
+     ?api=https://...        URL de votre backend FastAPI
+     &propertyId=123456789   GA4 property ID (OBLIGATOIRE pour les vraies données)
+     &property=Mon+Site      Nom affiché dans le header (optionnel)
+     &dateRange=this_month   Période par défaut (optionnel)
+   Ex : <iframe src="index.html?api=https://api.example.com/chat&propertyId=123456789">
+   IMPORTANT : sans propertyId, la page tourne en mode démo (données fictives).
+   ------------------------------------------------------------------ */
+const params        = new URLSearchParams(location.search);
+const API_URL       = params.get('api');                        // URL backend
+const PROPERTY_ID   = params.get('propertyId') || '';          // GA4 property ID
+const PROPERTY_NAME = params.get('property')   || '';          // Nom du site
+const INITIAL_RANGE = params.get('dateRange')  || 'this_month';
 
-  <div id="input-zone">
-    <div id="suggestions"></div>
-    <div id="input-row">
-      <textarea id="input" rows="1" placeholder="Posez votre question…"></textarea>
-      <div id="chart-toggle">
-        <button class="toggle-btn active" id="btn-text" onclick="setMode('text')">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <rect x="1" y="2" width="10" height="1.5" rx=".75" fill="currentColor" />
-            <rect x="1" y="5.25" width="8" height="1.5" rx=".75" fill="currentColor" />
-            <rect x="1" y="8.5" width="6" height="1.5" rx=".75" fill="currentColor" />
-          </svg>
-          Texte
-        </button>
-        <button class="toggle-btn" id="btn-chart" onclick="setMode('chart')">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <rect x="1" y="7" width="2.5" height="4" rx=".5" fill="currentColor" />
-            <rect x="4.75" y="4" width="2.5" height="7" rx=".5" fill="currentColor" />
-            <rect x="8.5" y="1.5" width="2.5" height="9.5" rx=".5" fill="currentColor" />
-          </svg>
-          + Graphique
-        </button>
-      </div>
-      <button id="send-btn" onclick="send()">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M12.5 7L2 1.5l1.8 5.5L2 12.5z" fill="white" />
-        </svg>
-      </button>
-    </div>
-    <div id="footer">Données issues de Google Analytics 4 · Aucune invention</div>
-  </div>
+// Si pas de propertyId ET une API est configurée : on avertit en console
+if (API_URL && !PROPERTY_ID) {
+  console.warn('[GA4 Assistant] ⚠️ Aucun propertyId dans les paramètres URL. Ajoutez ?propertyId=VOTRE_ID à l\'URL de l\'iframe.');
+}
 
-  <script>
-    const params = new URLSearchParams(location.search);
-    const API_URL = params.get("api") || "";
-    const GA4_PROP_ID = params.get("propertyId") || "";
-    const PROPERTY = params.get("property") || "Analytics";
+const IS_DEMO = !API_URL || !PROPERTY_ID;
 
-    let DATE_RANGE = params.get("dateRange") || "thisMonth";
-    let CUSTOM_START = null;
-    let CUSTOM_END = null;
-    let history = [];
-    let withChart = false;
-    let busy = false;
+/* ---------- Périodes (IDs frontend) ---------- */
+const PERIODS = [
+  { id: 'this_month', label: 'Ce mois-ci',       short: 'Ce mois'  },
+  { id: 'last_month', label: 'Le mois dernier',  short: 'Mois −1'  },
+  { id: 'last_7d',    label: '7 derniers jours', short: '7 jours'  },
+  { id: 'last_30d',   label: '30 derniers jours',short: '30 jours' },
+  { id: 'last_90d',   label: '90 derniers jours',short: '90 jours' },
+  { id: 'this_year',  label: 'Cette année',      short: 'Année'    },
+];
 
-    // Init UI
-    document.getElementById("header-title").textContent = "GA4 Assistant · " + PROPERTY;
-    document.getElementById("header-sub").textContent = "property " + GA4_PROP_ID;
-    syncDateLabel();
+/* Mapping vers les identifiants du backend FastAPI */
+const PERIOD_TO_BACKEND = {
+  'this_month': 'thisMonth',
+  'last_month': 'lastMonth',
+  'last_7d':    'last7days',
+  'last_30d':   'last30days',
+  'last_90d':   'last90days',
+  'this_year':  'thisYear',
+};
 
-    // ── DATE PICKER ────────────────────────────────────────────────────────────
-    function toggleDatePicker() {
-      const dd = document.getElementById("date-dropdown");
-      dd.classList.toggle("open");
-      document.getElementById("dp-chevron").style.transform =
-        dd.classList.contains("open") ? "rotate(180deg)" : "";
+const periodLabel = id => (PERIODS.find(p => p.id === id) || PERIODS[0]).label;
+const periodShort = id => {
+  const p = PERIODS.find(p => p.id === id) || PERIODS[0];
+  return p.short || p.label;
+};
+
+/* ---------- Détection période dans le texte ---------- */
+function detectPeriod(text) {
+  const t = text.toLowerCase();
+  if (/\b(ce mois|du mois|mois\s+en\s+cours|mois-?ci)\b/.test(t))      return 'this_month';
+  if (/\b(mois\s+dernier|mois\s+précédent|précédent\s+mois)\b/.test(t)) return 'last_month';
+  if (/\b(7\s*(?:derniers?\s*)?jours?|semaine\s+dernière)\b/.test(t))   return 'last_7d';
+  if (/\b(30\s*(?:derniers?\s*)?jours?)\b/.test(t))                     return 'last_30d';
+  if (/\b(90\s*(?:derniers?\s*)?jours?|trimestre)\b/.test(t))           return 'last_90d';
+  if (/\b(cette\s+année|année\s+en\s+cours|year\s+to\s+date|ytd)\b/.test(t)) return 'this_year';
+  return null;
+}
+
+/* ---------- Suggestions ---------- */
+const SUGGESTIONS = [
+  "Quel canal m'a ramené le plus d'utilisateurs ce mois-ci ?",
+  "On perd des utilisateurs entre l'inscription et la fin de l'onboarding ?",
+  "Quelles sont les pages les plus visitées en ce moment ?",
+  "D'où viennent mes utilisateurs (pays, ville, appareil) ?",
+  "Mon trafic a-t-il augmenté par rapport au mois dernier ?",
+];
+
+/* ============================================================
+   CLOUD — metaball animé (3 états : idle / thinking / reveal)
+   ============================================================ */
+function Cloud({ state, speed, morph, gooId }) {
+  const svgRef = useRef(null);
+  const splitRef = useRef({ value: 0, target: 0 });
+
+  const baseCircles = useMemo(() => {
+    if (morph === 'orbital') {
+      return [
+        { cx0: 0,   cy0: 0,   r: 42, fx: 0.0, fy: 0.0, px: 0,   py: 0 },
+        { cx0: -34, cy0: -20, r: 18, fx: 1.0, fy: 1.0, px: 0,   py: 0 },
+        { cx0: 34,  cy0: -16, r: 16, fx: 1.0, fy: 1.0, px: 2.1, py: 2.1 },
+        { cx0: 32,  cy0: 28,  r: 20, fx: 1.0, fy: 1.0, px: 4.2, py: 4.2 },
+        { cx0: -30, cy0: 26,  r: 14, fx: 1.0, fy: 1.0, px: 1.6, py: 1.6 },
+      ];
     }
-
-    function selectPreset(el) {
-      document.querySelectorAll(".dp-preset").forEach(p => p.classList.remove("active"));
-      el.classList.add("active");
-      DATE_RANGE = el.dataset.value;
-      CUSTOM_START = null;
-      CUSTOM_END = null;
-      syncDateLabel();
-      closeDatePicker();
+    if (morph === 'ribbon') {
+      return [
+        { cx0: -50, cy0: -8, r: 24, fx: 0.7, fy: 1.4, px: 0,   py: 0.4 },
+        { cx0: -22, cy0: 8,  r: 30, fx: 0.9, fy: 0.9, px: 1.1, py: 1.7 },
+        { cx0: 6,   cy0: -6, r: 28, fx: 1.2, fy: 1.1, px: 2.3, py: 0.6 },
+        { cx0: 32,  cy0: 10, r: 26, fx: 0.6, fy: 1.3, px: 3.5, py: 2.4 },
+        { cx0: 56,  cy0: -4, r: 22, fx: 1.3, fy: 0.7, px: 0.7, py: 1.2 },
+      ];
     }
-
-    function applyCustomDate() {
-      const s = document.getElementById("dp-start").value;
-      const e = document.getElementById("dp-end").value;
-      if (!s || !e) return;
-      CUSTOM_START = s;
-      CUSTOM_END = e;
-      DATE_RANGE = "custom";
-      document.querySelectorAll(".dp-preset").forEach(p => p.classList.remove("active"));
-      syncDateLabel();
-      closeDatePicker();
-    }
-
-    function syncDateLabel() {
-      const labels = {
-        thisMonth: "Ce mois-ci", last7days: "7 derniers jours",
-        last30days: "30 derniers jours", last90days: "90 derniers jours",
-        lastMonth: "Mois dernier", thisYear: "Cette année",
-      };
-      const el = document.getElementById("date-btn-label");
-      if (DATE_RANGE === "custom" && CUSTOM_START && CUSTOM_END) {
-        el.textContent = CUSTOM_START + " → " + CUSTOM_END;
-      } else {
-        el.textContent = labels[DATE_RANGE] || DATE_RANGE;
-      }
-    }
-
-    function closeDatePicker() {
-      document.getElementById("date-dropdown").classList.remove("open");
-      document.getElementById("dp-chevron").style.transform = "";
-    }
-
-    document.addEventListener("click", e => {
-      if (!document.getElementById("date-picker-wrap").contains(e.target)) closeDatePicker();
-    });
-
-    // ── SUGGESTIONS ────────────────────────────────────────────────────────────
-    const SUGGESTIONS = [
-      "Combien de sessions ce mois ?",
-      "Quel canal amène le plus de trafic ?",
-      "Quelles sont les pages les plus vues ?",
-      "Tunnel d'inscription — où perd-on des utilisateurs ?",
-      "Répartition par appareil",
+    return [
+      { cx0: 0,   cy0: -10, r: 38, fx: 0.7, fy: 1.1, px: 0,   py: 0.5 },
+      { cx0: -26, cy0: 4,   r: 32, fx: 0.9, fy: 0.6, px: 1.2, py: 1.8 },
+      { cx0: 24,  cy0: 8,   r: 30, fx: 1.1, fy: 0.8, px: 2.1, py: 0.9 },
+      { cx0: -6,  cy0: 22,  r: 26, fx: 0.5, fy: 1.3, px: 3.5, py: 2.6 },
+      { cx0: 14,  cy0: -18, r: 24, fx: 1.3, fy: 0.4, px: 0.4, py: 1.4 },
     ];
+  }, [morph]);
 
-    const sugEl = document.getElementById("suggestions");
-    SUGGESTIONS.forEach(s => {
-      const b = document.createElement("button");
-      b.className = "sug-btn";
-      b.textContent = s;
-      b.onclick = () => { document.getElementById("input").value = s; send(); };
-      sugEl.appendChild(b);
-    });
+  const center = 100; // viewBox = 200×200
 
-    // Bot welcome
-    appendMsg("bot",
-      "Bonjour 👋 Je suis votre assistant data, connecté directement à Google Analytics 4 — <strong>" + PROPERTY + "</strong>. "
-      + "Posez-moi n'importe quelle question sur vos données : trafic, conversions, sources, pages…<br>"
-      + "Je réponds uniquement à partir des données réelles, sans estimation.",
-      false, false
-    );
+  useEffect(() => {
+    if (!svgRef.current) return;
+    let raf;
+    const start = performance.now();
 
-    function setMode(mode) {
-      withChart = mode === "chart";
-      document.getElementById("btn-text").classList.toggle("active", !withChart);
-      document.getElementById("btn-chart").classList.toggle("active", withChart);
-    }
+    function tick(now) {
+      const t = (now - start) / 1000;
+      const speedMul = Math.max(0.05, speed);
+      const isThinking = state === 'thinking';
+      const isReveal   = state === 'reveal';
 
-    const inputEl = document.getElementById("input");
-    inputEl.addEventListener("input", () => {
-      inputEl.style.height = "auto";
-      inputEl.style.height = Math.min(inputEl.scrollHeight, 80) + "px";
-    });
-    inputEl.addEventListener("keydown", e => {
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
-    });
+      const tgt = isReveal ? 1 : 0;
+      splitRef.current.value += (tgt - splitRef.current.value) * 0.08;
+      const split = splitRef.current.value;
 
-    // ── CONVERSION DATES ───────────────────────────────────────────────────────
-    // GA4 n'accepte que YYYY-MM-DD, NdaysAgo, yesterday, today.
-    // On convertit ici les presets "calendrier" en vraies dates avant envoi.
-    function resolveDateRange(range) {
-      const today = new Date();
-      const toISO = d => d.toISOString().split("T")[0];
+      let amp  = isThinking ? 18 : 4.5;
+      let freq = isThinking ? 2.2 : 0.45;
+      amp *= speedMul;
+      const tt = t * speedMul;
 
-      if (range === "custom" && CUSTOM_START && CUSTOM_END) {
-        return { date_range_hint: "custom", custom_start: CUSTOM_START, custom_end: CUSTOM_END };
-      }
-      if (range === "thisMonth") {
-        return {
-          date_range_hint: "custom",
-          custom_start: toISO(new Date(today.getFullYear(), today.getMonth(), 1)),
-          custom_end: toISO(today),
-        };
-      }
-      if (range === "lastMonth") {
-        return {
-          date_range_hint: "custom",
-          custom_start: toISO(new Date(today.getFullYear(), today.getMonth() - 1, 1)),
-          custom_end: toISO(new Date(today.getFullYear(), today.getMonth(), 0)),
-        };
-      }
-      if (range === "thisYear") {
-        return {
-          date_range_hint: "custom",
-          custom_start: today.getFullYear() + "-01-01",
-          custom_end: toISO(today),
-        };
-      }
-      // last7days, last30days, last90days → le backend les convertit en NdaysAgo, ça marche nativement
-      return { date_range_hint: range };
-    }
-
-    // ── ENVOI ──────────────────────────────────────────────────────────────────
-    async function send() {
-      const question = inputEl.value.trim();
-      if (!question || busy) return;
-      if (!API_URL || !GA4_PROP_ID) {
-        appendMsg("bot", "⚠️ Paramètres manquants dans l'URL (api, propertyId).", true);
-        return;
-      }
-
-      busy = true;
-      document.getElementById("send-btn").disabled = true;
-      sugEl.style.display = "none";
-
-      appendMsg("user", question);
-      inputEl.value = "";
-      inputEl.style.height = "auto";
-      history.push({ role: "user", content: question });
-
-      const typingId = addTyping();
-
-      try {
-        const dateParams = resolveDateRange(DATE_RANGE);
-
-        const bodyPayload = {
-          question,
-          ga4_property_id: GA4_PROP_ID,
-          conversation_history: history.slice(-6),
-          property_name: PROPERTY,
-          with_chart: withChart,
-          ...dateParams,
-        };
-
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify(bodyPayload),
-        });
-
-        const rawText = await res.text();
-        removeTyping(typingId);
-
-        let data;
-        try { data = JSON.parse(rawText); }
-        catch (e) { appendMsg("bot", "⚠️ Réponse invalide du serveur.", true); return; }
-
-        if (data.error) {
-          appendMsg("bot", "⚠️ " + data.error, true);
-        } else {
-          appendMsg("bot", data.answer, false, true, data.chart_data);
-          history.push({ role: "assistant", content: data.answer });
+      const circles = svgRef.current.querySelectorAll('circle.metab');
+      baseCircles.forEach((c, i) => {
+        let dx = Math.sin(tt * c.fx * freq + c.px) * amp;
+        let dy = Math.cos(tt * c.fy * freq + c.py) * amp;
+        if (isThinking) {
+          dx += Math.sin(tt * 5.1 + c.px * 2) * 6;
+          dy += Math.cos(tt * 4.3 + c.py * 2) * 6;
         }
+        const side = c.cx0 < 0 ? -1 : (c.cx0 > 0 ? 1 : (i % 2 ? 1 : -1));
+        const splitDx = side * 70 * split;
+        const splitDy = Math.abs(c.cy0) * 0.4 * split;
 
-      } catch (e) {
-        removeTyping(typingId);
-        appendMsg("bot", "⚠️ Impossible de joindre le serveur. Vérifiez votre connexion.", true);
+        const el = circles[i];
+        if (el) {
+          el.setAttribute('cx', center + c.cx0 + dx + splitDx);
+          el.setAttribute('cy', center + c.cy0 + dy + (c.cy0 > 0 ? splitDy : -splitDy * 0.3));
+          const rp = isThinking ? (1 + Math.sin(tt * 4.6 + i) * 0.06) : 1;
+          el.setAttribute('r', c.r * rp);
+        }
+      });
+
+      const spin = svgRef.current.querySelector('g.spin');
+      if (spin) {
+        let rot;
+        if (isReveal)   rot = 0;
+        else if (isThinking) rot = Math.sin(tt * 1.4) * 3 + tt * 8;
+        else            rot = tt * 3.0;
+        spin.setAttribute('transform', `rotate(${rot} ${center} ${center})`);
       }
-
-      busy = false;
-      document.getElementById("send-btn").disabled = false;
+      raf = requestAnimationFrame(tick);
     }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [state, speed, morph, baseCircles, center]);
 
-    // ── MESSAGES ───────────────────────────────────────────────────────────────
-    function appendMsg(role, text, isError = false, showSource = false, chart_data = null) {
-      const msgs = document.getElementById("messages");
-      const wrap = document.createElement("div");
-      wrap.className = "bubble-wrap " + role;
-      const av = document.createElement("div");
-      av.className = "bav bav-" + role;
-      av.textContent = role === "bot" ? "G4" : "→";
-      const bub = document.createElement("div");
-      bub.className = "bubble " + role + (isError ? " error" : "");
-      const content = document.createElement("div");
-      content.innerHTML = formatText(text);
-      bub.appendChild(content);
-      if (showSource && !isError) {
-        const src = document.createElement("div");
-        src.className = "source-tag";
-        src.textContent = "Source: GA4 API";
-        bub.appendChild(src);
-      }
-      if (chart_data) {
-        const chartEl = renderChart(chart_data);
-        if (chartEl) bub.appendChild(chartEl);
-      }
-      wrap.appendChild(av);
-      wrap.appendChild(bub);
-      msgs.appendChild(wrap);
-      msgs.scrollTop = msgs.scrollHeight;
+  return (
+    <svg ref={svgRef} viewBox="0 0 200 200" className="cloud-svg" aria-hidden="true">
+      <defs>
+        <filter id={gooId} x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="6" />
+          <feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10" />
+        </filter>
+      </defs>
+      <g className="spin">
+        <g filter={`url(#${gooId})`}>
+          {baseCircles.map((c, i) => (
+            <circle
+              key={i}
+              className="metab"
+              cx={center + c.cx0}
+              cy={center + c.cy0}
+              r={c.r}
+              fill="var(--cloud-fill)"
+            />
+          ))}
+        </g>
+        {state !== 'reveal' && (
+          <circle cx={center - 8} cy={center - 14} r={5}
+            fill="var(--cloud-hi)" opacity="0.18" style={{ pointerEvents: 'none' }} />
+        )}
+      </g>
+    </svg>
+  );
+}
+
+/* ============================================================
+   PERIOD SELECTOR
+   ============================================================ */
+function PeriodSelector({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    function onDoc(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
+  return (
+    <div className="period" ref={ref}>
+      <button className="period-btn" onClick={() => setOpen(o => !o)}>
+        <span>{periodShort(value)}</span>
+        <svg viewBox="0 0 12 12" fill="none">
+          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="period-menu">
+          {PERIODS.map(p => (
+            <div
+              key={p.id}
+              className={`period-opt ${p.id === value ? 'is-active' : ''}`}
+              onClick={() => { onChange(p.id); setOpen(false); }}
+            >
+              <span>{p.label}</span>
+              <svg className="check" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M2.5 6.5L5 9L9.5 3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   WHISPER — suggestions rotatives
+   ============================================================ */
+function Whisper({ onPick, paused }) {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (paused) return;
+    const t = setInterval(() => setI(x => (x + 1) % SUGGESTIONS.length), 4200);
+    return () => clearInterval(t);
+  }, [paused]);
+  return (
+    <>
+      <div className="whisper">
+        <div key={i} className="whisper-chip whisper-enter" onClick={() => onPick(SUGGESTIONS[i])}>
+          {SUGGESTIONS[i]}
+        </div>
+      </div>
+      <div className="hero-dots" aria-hidden>
+        {SUGGESTIONS.map((_, k) => <span key={k} className={k === i ? 'on' : ''} />)}
+      </div>
+    </>
+  );
+}
+
+/* ============================================================
+   MARKDOWN MINIMAL
+   ============================================================ */
+function renderMarkdown(text) {
+  if (!text) return null;
+  const blocks = text.replace(/\r/g, '').split(/\n\s*\n/);
+  return blocks.map((block, bi) => {
+    const lines = block.split('\n');
+    if (lines.every(l => /^\s*[-*]\s+/.test(l) || l.trim() === '')) {
+      const items = lines.filter(l => l.trim()).map(l => l.replace(/^\s*[-*]\s+/, ''));
+      return <ul key={bi}>{items.map((it, i) => <li key={i}>{inlineRender(it, i)}</li>)}</ul>;
     }
+    return <p key={bi}>{lines.map((l, i) => (
+      <React.Fragment key={i}>
+        {inlineRender(l, i)}
+        {i < lines.length - 1 && <br/>}
+      </React.Fragment>
+    ))}</p>;
+  });
 
-    function formatText(text) {
-      if (!text) return "";
-      return text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/^- (.+)$/gm, '<li>$1</li>')
-        .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
-        .replace(/\n\n/g, '<br><br>')
-        .replace(/\n/g, '<br>')
-        .replace(/\b(\d[\d\s,.']*\d|\d{3,})\b/g, '<span class="num">$1</span>');
+  function inlineRender(s, k) {
+    const parts = [];
+    let last = 0, idx = 0;
+    const re = /\*\*(.+?)\*\*/g;
+    let m;
+    while ((m = re.exec(s)) !== null) {
+      if (m.index > last) parts.push(s.slice(last, m.index));
+      parts.push(<strong key={`b${k}-${idx++}`}>{m[1]}</strong>);
+      last = m.index + m[0].length;
     }
+    if (last < s.length) parts.push(s.slice(last));
+    return parts.length ? parts : s;
+  }
+}
 
-    // ── GRAPHIQUES ─────────────────────────────────────────────────────────────
-    function renderChart(cd) {
-      if (!cd || !cd.labels || !cd.datasets) return null;
-      const container = document.createElement("div");
-      container.className = "chart-container";
-      if (cd.title) {
-        const title = document.createElement("div");
-        title.className = "chart-title";
-        title.textContent = cd.title;
-        container.appendChild(title);
-      }
-      if (cd.type === "funnel") return renderFunnel(cd, container);
-      const wrap = document.createElement("div");
-      wrap.className = "chart-wrap";
-      const canvas = document.createElement("canvas");
-      const maxItems = cd.type === "pie" ? 6 : 12;
-      const labels = cd.labels.slice(0, maxItems);
-      const datasets = cd.datasets.map(ds => ({ ...ds, data: (ds.data || []).slice(0, maxItems) }));
-      const PALETTE = ["#4f8ef7", "#7c5cfc", "#3ecf8e", "#f5a623", "#f56565", "#38bdf8", "#a78bfa", "#34d399", "#fbbf24", "#f87171", "#60a5fa", "#818cf8"];
-      const isHBar = cd.type === "horizontalBar";
-      const chartType = isHBar ? "bar" : cd.type;
-      const datasetConfig = datasets.map((ds, di) => ({
-        label: ds.label || "",
-        data: ds.data,
-        backgroundColor: cd.type === "line" ? "rgba(79,142,247,0.12)" : cd.type === "pie" ? PALETTE.slice(0, ds.data.length) : PALETTE[di % PALETTE.length],
-        borderColor: cd.type === "pie" ? PALETTE.slice(0, ds.data.length).map(c => c + "cc") : cd.type === "line" ? PALETTE[di % PALETTE.length] : PALETTE[di % PALETTE.length],
-        borderWidth: cd.type === "pie" ? 2 : cd.type === "line" ? 2 : 0,
-        borderRadius: cd.type === "line" ? 0 : 5,
-        fill: cd.type === "line",
-        tension: 0.35,
-        pointRadius: cd.type === "line" ? 3 : 0,
-        pointBackgroundColor: PALETTE[di % PALETTE.length],
-      }));
-      const chartH = cd.type === "pie" ? 200 : isHBar ? Math.max(120, labels.length * 30) : 190;
-      canvas.style.maxHeight = chartH + "px";
-      const config = {
-        type: chartType,
-        data: { labels, datasets: datasetConfig },
-        options: {
-          indexAxis: isHBar ? "y" : "x",
-          responsive: true,
-          maintainAspectRatio: true,
-          animation: { duration: 600, easing: "easeOutQuart" },
-          plugins: {
-            legend: { display: cd.type === "pie" || datasets.length > 1, labels: { color: "#7a7f8e", font: { family: "'DM Mono', monospace", size: 11 }, boxWidth: 10, padding: 12 } },
-            tooltip: { backgroundColor: "#1e2126", borderColor: "rgba(255,255,255,0.12)", borderWidth: 1, titleColor: "#e8eaf0", bodyColor: "#7a7f8e", titleFont: { family: "'Syne', sans-serif", size: 12, weight: "600" }, bodyFont: { family: "'DM Mono', monospace", size: 11 }, padding: 10, callbacks: { label: ctx => { const val = ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.parsed; return " " + (typeof val === "number" ? val.toLocaleString("fr-FR") : val); } } },
+/* ============================================================
+   CHART CARD — Chart.js
+   ============================================================ */
+function ChartCard({ chart, dark }) {
+  const canvasRef = useRef(null);
+  const chartRef  = useRef(null);
+
+  useEffect(() => {
+    if (!canvasRef.current || !chart) return;
+    if (chartRef.current) chartRef.current.destroy();
+
+    const css = getComputedStyle(document.documentElement);
+    const ink       = css.getPropertyValue('--ink').trim();
+    const ink2      = css.getPropertyValue('--ink-2').trim();
+    const ink3      = css.getPropertyValue('--ink-3').trim();
+    const ember     = css.getPropertyValue('--ember').trim();
+    const hair      = css.getPropertyValue('--hair').trim();
+    const emberSoft = css.getPropertyValue('--ember-soft').trim();
+    const surfaceBg = css.getPropertyValue('--surface').trim();
+
+    const palette = [ember, ink, '#7a9b76', '#c89f5a', '#5b6e8f', '#a44d6a', '#6b8e8a'];
+
+    const isPie  = chart.type === 'pie';
+    const isLine = chart.type === 'line';
+    const isBarH = chart.type === 'bar_horizontal';
+    const isFunnel = chart.type === 'funnel';
+    const isBar  = chart.type === 'bar' || isFunnel || isBarH;
+
+    let cfgType = isPie ? 'doughnut' : isLine ? 'line' : 'bar';
+
+    const dsets = (chart.datasets || []).map((ds, di) => {
+      const base = { label: ds.label || '', data: ds.data || [], borderWidth: isLine ? 2 : 0, borderRadius: isBar ? 4 : 0 };
+      if (isPie) return { ...base, backgroundColor: (ds.data || []).map((_, i) => palette[i % palette.length]), borderColor: surfaceBg, borderWidth: 2 };
+      if (isLine) return { ...base, borderColor: ember, backgroundColor: emberSoft, fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 4, pointBackgroundColor: ember };
+      return { ...base, backgroundColor: ember, hoverBackgroundColor: ink };
+    });
+
+    chartRef.current = new Chart(canvasRef.current.getContext('2d'), {
+      type: cfgType,
+      data: { labels: chart.labels || [], datasets: dsets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: isBarH || isFunnel ? 'y' : 'x',
+        animation: { duration: 700, easing: 'easeOutQuart' },
+        plugins: {
+          legend: {
+            display: isPie || (dsets.length > 1),
+            position: 'bottom',
+            labels: { color: ink2, font: { family: "'Instrument Sans', system-ui, sans-serif", size: 10 }, boxWidth: 8, boxHeight: 8, usePointStyle: true },
           },
-          scales: cd.type === "pie" ? {} : {
-            x: { grid: { color: "rgba(255,255,255,0.04)", drawBorder: false }, ticks: { color: "#7a7f8e", font: { family: "'DM Mono', monospace", size: 10 }, maxRotation: isHBar ? 0 : 30, callback: v => typeof v === "number" && v >= 1000 ? (v / 1000).toFixed(1) + "k" : v } },
-            y: { grid: { color: "rgba(255,255,255,0.04)", drawBorder: false }, ticks: { color: "#7a7f8e", font: { family: "'DM Mono', monospace", size: 10 }, callback: v => typeof v === "number" && v >= 1000 ? (v / 1000).toFixed(1) + "k" : v } },
+          tooltip: {
+            backgroundColor: ink,
+            titleFont: { family: "'Instrument Sans'", size: 11, weight: '600' },
+            bodyFont:  { family: "'Instrument Sans'", size: 11 },
+            padding: 8, displayColors: false, cornerRadius: 6,
           },
         },
+        scales: isPie ? {} : {
+          x: {
+            grid: { color: 'transparent', drawBorder: false },
+            ticks: { color: ink3, font: { family: "'Instrument Sans'", size: 10 }, maxRotation: 0, autoSkip: true },
+            border: { display: false },
+          },
+          y: {
+            grid: { color: hair, drawBorder: false },
+            ticks: { color: ink3, font: { family: "'Instrument Sans'", size: 10 } },
+            border: { display: false },
+            beginAtZero: true,
+          },
+        },
+      },
+    });
+    return () => { if (chartRef.current) chartRef.current.destroy(); };
+  }, [chart, dark]);
+
+  if (!chart) return null;
+  return (
+    <div className="chart-card">
+      {chart.title && <div className="ct-title">{chart.title}</div>}
+      <div className="ct-canvas"><canvas ref={canvasRef} /></div>
+    </div>
+  );
+}
+
+/* ============================================================
+   MOCK — mode démo sans API
+   ============================================================ */
+const MOCK_BASE = {
+  channels: { Organic: 18420, Direct: 12810, Referral: 6342, Paid: 4910, Social: 3271, Email: 1820 },
+  countries: ['France', 'Belgique', 'Suisse', 'Canada', 'Maroc', 'États-Unis'],
+};
+
+function mockResponse(question, dateRange) {
+  const q = question.toLowerCase();
+  const period = periodLabel(dateRange);
+
+  if (/(funnel|tunnel|onboarding|inscription|conversion|abandon)/.test(q)) {
+    return {
+      answer: `Sur la période **${period}**, voici le tunnel d'onboarding :\n\n- **Inscription** : 12 480 utilisateurs\n- **Email vérifié** : 9 102 (−27 %)\n- **Profil complété** : 6 815 (−25 %)\n- **Première action** : 4 220 (−38 %)\n\nLe décrochage principal est entre **profil complété** et **première action**.`,
+      chart_data: {
+        type: 'funnel',
+        title: "Tunnel d'onboarding",
+        labels: ['Inscription', 'Email vérifié', 'Profil complété', 'Première action'],
+        datasets: [{ label: 'Utilisateurs', data: [12480, 9102, 6815, 4220] }],
+      },
+    };
+  }
+  if (/(augment|évolution|progression|tendance|trafic|comparé|comparer|mois\s+dernier|précédent)/.test(q)) {
+    return {
+      answer: `Le trafic est en **hausse de +18,4 %** sur **${period}** vs. la période précédente.\n\n- Pic à **2 410 sessions** le mercredi\n- Creux le dimanche (~760 sessions)\n- Croissance portée par **Organic** et **Referral**.`,
+      chart_data: {
+        type: 'line',
+        title: 'Sessions sur la période',
+        labels: ['L', 'M', 'M', 'J', 'V', 'S', 'D'],
+        datasets: [{ label: 'Sessions', data: [1820, 2105, 2410, 2280, 2050, 1240, 760] }],
+      },
+    };
+  }
+  if (/(canal|source|d['e]o[uù]|acquisition|ramen)/.test(q)) {
+    const entries = Object.entries(MOCK_BASE.channels);
+    return {
+      answer: `Sur **${period}**, les canaux principaux :\n\n- **Organic** : 18 420 (40 %)\n- **Direct** : 12 810 (28 %)\n- **Referral** : 6 342 (14 %)\n- **Paid** : 4 910 (10 %)`,
+      chart_data: {
+        type: 'bar',
+        title: 'Utilisateurs par canal',
+        labels: entries.map(e => e[0]),
+        datasets: [{ label: 'Utilisateurs', data: entries.map(e => e[1]) }],
+      },
+    };
+  }
+  if (/(page|contenu|article|visit)/.test(q)) {
+    return {
+      answer: `Top pages sur **${period}** par vues :\n\n- **/** — 24 102 vues\n- **/pricing** — 9 815\n- **/blog/intro-ga4** — 7 240\n- **/features** — 5 110`,
+      chart_data: {
+        type: 'bar_horizontal',
+        title: 'Top pages — vues',
+        labels: ['/', '/pricing', '/blog/intro-ga4', '/features', '/contact', '/login'],
+        datasets: [{ label: 'Vues', data: [24102, 9815, 7240, 5110, 3420, 2018] }],
+      },
+    };
+  }
+  if (/(pays|ville|géo|geo|appareil|device|d['e]o[uù]\s+vienn|provenance)/.test(q)) {
+    return {
+      answer: `Sur **${period}**, répartition géographique :\n\n- **France** : 62 %\n- **Belgique** : 11 %\n- **Suisse** : 8 %\n- **Canada** : 6 %\n\nAudience majoritairement **mobile (58 %)**, puis desktop (36 %).`,
+      chart_data: {
+        type: 'pie',
+        title: 'Répartition par pays',
+        labels: MOCK_BASE.countries,
+        datasets: [{ label: '%', data: [62, 11, 8, 6, 5, 8] }],
+      },
+    };
+  }
+  return {
+    answer: `Sur **${period}**, voici quelques pistes :\n\n- Demande-moi un **canal d'acquisition**\n- Ou une **page spécifique**\n- Ou compare **deux périodes**`,
+    chart_data: null,
+  };
+}
+
+/* ============================================================
+   APP
+   ============================================================ */
+function App() {
+  const [tweaks, setTweaksState] = useState(TWEAK_DEFAULTS);
+
+  /* Thème */
+  useEffect(() => {
+    document.documentElement.dataset.theme = tweaks.darkMode ? 'dark' : 'light';
+  }, [tweaks.darkMode]);
+
+  /* State */
+  const [currentRange, setCurrentRange] = useState(INITIAL_RANGE);
+  const [withChart, setWithChart]       = useState(true);
+  const [input, setInput]               = useState('');
+  const [messages, setMessages]         = useState([]);
+  const [cloudState, setCloudState]     = useState('idle');
+
+  const inputRef  = useRef(null);
+  const scrollRef = useRef(null);
+
+  const isEmpty = messages.length === 0;
+
+  /* Auto-grow textarea */
+  function autoGrow() {
+    const ta = inputRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(96, ta.scrollHeight) + 'px';
+  }
+  useEffect(autoGrow, [input]);
+
+  /* Scroll to bottom */
+  useEffect(() => {
+    if (scrollRef.current && messages.length > 0) {
+      requestAnimationFrame(() => { scrollRef.current.scrollTop = scrollRef.current.scrollHeight; });
+    }
+  }, [messages, cloudState]);
+
+  /* ---- Submit ---- */
+  async function submit(textOverride) {
+    const q = (textOverride ?? input).trim();
+    if (!q || cloudState !== 'idle') return;
+
+    const detected = detectPeriod(q);
+    const useRange = detected || currentRange;
+
+    const conversation_history = messages.map(m => ({
+      role: m.role === 'user' ? 'user' : 'assistant',
+      content: m.text,
+    }));
+
+    setMessages(prev => [...prev, { role: 'user', text: q, period: useRange, time: Date.now() }]);
+    setInput('');
+    setCloudState('thinking');
+
+    let data;
+    try {
+      if (!IS_DEMO) {
+        /* ── Mode réel : API + propertyId présents ── */
+        const backendRange = PERIOD_TO_BACKEND[useRange] || 'last30days';
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: q,
+            ga4_property_id: PROPERTY_ID,   // transmis depuis l'URL de l'iframe
+            conversation_history,
+            property_name: PROPERTY_NAME,
+            date_range_hint: backendRange,
+            with_chart: withChart,
+          }),
+        });
+        data = await res.json();
+      } else {
+        /* ── Mode démo (pas d'api= ou pas de propertyId=) ── */
+        await new Promise(r => setTimeout(r, 1400 + Math.random() * 700));
+        data = mockResponse(q, useRange);
+        if (!withChart) data.chart_data = null;
+      }
+    } catch (err) {
+      data = {
+        answer: `Impossible de joindre l'API.\n\n**Erreur** : ${String(err && err.message || err)}`,
+        chart_data: null,
       };
-      wrap.appendChild(canvas);
-      container.appendChild(wrap);
-      requestAnimationFrame(() => new Chart(canvas, config));
-      return container;
     }
 
-    function renderFunnel(cd, container) {
-      const wrap = document.createElement("div");
-      wrap.className = "funnel-bar-wrap";
-      const values = cd.datasets[0]?.data || [];
-      const maxVal = Math.max(...values, 1);
-      const FUNNEL_COLORS = ["#4f8ef7", "#7c5cfc", "#a78bfa", "#3ecf8e", "#38bdf8", "#60a5fa"];
-      cd.labels.forEach((label, i) => {
-        const val = values[i] || 0;
-        const pct = Math.round((val / maxVal) * 100);
-        const drop = i > 0 && values[i - 1] > 0 ? "-" + Math.round((1 - val / values[i - 1]) * 100) + "%" : "";
-        const step = document.createElement("div"); step.className = "funnel-step";
-        const lbl = document.createElement("div"); lbl.className = "funnel-label"; lbl.textContent = label; lbl.title = label;
-        const track = document.createElement("div"); track.className = "funnel-track";
-        const fill = document.createElement("div"); fill.className = "funnel-fill"; fill.style.width = "0%"; fill.style.background = FUNNEL_COLORS[i % FUNNEL_COLORS.length]; fill.textContent = val.toLocaleString("fr-FR");
-        const dropEl = document.createElement("div"); dropEl.className = "funnel-drop"; dropEl.textContent = drop;
-        track.appendChild(fill); step.appendChild(lbl); step.appendChild(track); step.appendChild(dropEl); wrap.appendChild(step);
-        setTimeout(() => { fill.style.width = pct + "%"; }, 100 + i * 80);
-      });
-      container.appendChild(wrap);
-      return container;
-    }
+    setCloudState('reveal');
+    await new Promise(r => setTimeout(r, 420));
+    setMessages(prev => [...prev, {
+      role: 'bot',
+      text: data.answer || '',
+      chart: (withChart && data.chart_data) ? data.chart_data : null,
+      period: useRange,
+      time: Date.now(),
+    }]);
+    await new Promise(r => setTimeout(r, 350));
+    setCloudState('idle');
+  }
 
-    function addTyping() {
-      const id = "typing-" + Date.now();
-      const msgs = document.getElementById("messages");
-      const wrap = document.createElement("div"); wrap.className = "bubble-wrap bot"; wrap.id = id;
-      const av = document.createElement("div"); av.className = "bav bav-bot"; av.textContent = "G4";
-      const bub = document.createElement("div"); bub.className = "bubble bot";
-      const dots = document.createElement("div"); dots.className = "typing-dots"; dots.innerHTML = "<span></span><span></span><span></span>";
-      bub.appendChild(dots); wrap.appendChild(av); wrap.appendChild(bub); msgs.appendChild(wrap);
-      msgs.scrollTop = msgs.scrollHeight;
-      return id;
-    }
+  function onKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
+  }
 
-    function removeTyping(id) {
-      const el = document.getElementById(id);
-      if (el) el.remove();
-    }
-  </script>
+  /* ---- Render ---- */
+  const statusLine = cloudState === 'thinking'
+    ? <em>Je cherche dans vos données…</em>
+    : cloudState === 'reveal'
+      ? <em>Voilà.</em>
+      : (isEmpty ? <span>Posez votre question</span> : <span>Continuez la conversation</span>);
+
+  return (
+    <div className="ga4" style={{ '--speed': tweaks.animSpeed }}>
+
+      {/* HEADER */}
+      <header className="hdr">
+        <div className="hdr-brand">
+          <div className="hdr-mark" />
+          <div>
+            <div className="hdr-title">GA4 Assistant</div>
+            <div className="hdr-sub">
+              {IS_DEMO
+                ? '⚠ Mode démo — ajoutez ?propertyId= à l\'URL'
+                : (PROPERTY_NAME || 'Analytics, en clair')}
+            </div>
+          </div>
+        </div>
+        <PeriodSelector value={currentRange} onChange={setCurrentRange} />
+      </header>
+
+      {/* STAGE */}
+      <div className="stage">
+
+        {/* ── Cloud zone : toujours rendue, jamais scrollée ── */}
+        <div className="cloud-zone">
+          {isEmpty && (
+            <h1 className="left-headline">
+              Bonjour. <em>Que voulez-vous savoir&nbsp;?</em>
+            </h1>
+          )}
+          <div className={`cloud-wrap ${isEmpty ? 'cloud-hero' : 'cloud-mini'}`}>
+            <Cloud state={cloudState} speed={tweaks.animSpeed} morph={tweaks.cloudMorph} gooId="goo-hero" />
+          </div>
+          <div className="left-status">{statusLine}</div>
+          {isEmpty && (
+            <Whisper paused={cloudState !== 'idle'} onPick={s => { setInput(s); inputRef.current?.focus(); }} />
+          )}
+        </div>
+
+        {/* ── Zone conversation scrollable ── */}
+        {!isEmpty && (
+          <div className="chat-scroll" ref={scrollRef}>
+            <div className="chat">
+              {messages.map((m, i) => (
+                <div key={i} className={`msg ${m.role}`}>
+                  <div className="bubble">{renderMarkdown(m.text)}</div>
+                  {m.role === 'bot' && m.chart && <ChartCard chart={m.chart} dark={tweaks.darkMode} />}
+                  {m.role === 'bot' && (
+                    <div className="msg-meta">
+                      <span>{periodLabel(m.period)}</span>
+                      <span className="sep" />
+                      <span className="src">Source : GA4 API</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* COMPOSER */}
+      <div className="composer">
+        <div className="composer-inner">
+          <div className="composer-row">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={onKey}
+              placeholder="Posez votre question…"
+              rows={1}
+              disabled={cloudState !== 'idle'}
+            />
+            <button
+              className="send-btn"
+              onClick={() => submit()}
+              disabled={!input.trim() || cloudState !== 'idle'}
+              aria-label="Envoyer"
+            >
+              <svg viewBox="0 0 16 16" fill="none">
+                <path d="M2 8L14 8M14 8L9 3M14 8L9 13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div className="composer-bottom">
+            <div
+              className={`chart-toggle ${withChart ? 'is-on' : ''}`}
+              onClick={() => setWithChart(v => !v)}
+              role="switch"
+              aria-checked={withChart}
+            >
+              <div className="switch" />
+              <span className="lbl">{withChart ? 'Avec graphique' : 'Texte seul'}</span>
+            </div>
+            <div className="composer-hint">↵ envoyer · ⇧↵ nouvelle ligne</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
 </body>
-
 </html>
