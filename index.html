@@ -1125,15 +1125,16 @@ function App() {
     let data;
     try {
       if (!isDemo) {
-        /* ── Mode réel : API + propertyId présents ── */
+        /* ── Mode réel : passe par le proxy Vercel pour éviter les blocages CORS/sandbox Looker ── */
         const backendRange = PERIOD_TO_BACKEND[useRange] || 'last30days';
-        // Content-Type: text/plain évite le preflight CORS avec Google Apps Script
-        const res = await fetch(API_URL, {
+        // /api/proxy?to=<GAS_URL> — même origine → pas de CORS, fonctionne dans tous les iframes
+        const proxyUrl = `/api/proxy?to=${encodeURIComponent(API_URL)}`;
+        const res = await fetch(proxyUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             question: q,
-            ga4_property_id: propertyId,    // dynamique (postMessage ou URL)
+            ga4_property_id: propertyId,
             conversation_history,
             property_name: propertyName,
             date_range_hint: backendRange,
